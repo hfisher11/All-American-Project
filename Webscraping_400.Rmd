@@ -1,0 +1,159 @@
+---
+title: "Project Webscraping"
+author: "Andrew Skemp and Henry Fisher"
+date: "12/1/2022"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 4.5
+  html_document: default
+word_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(httr)
+library(rvest)
+install.packages("colorspace")
+```
+
+```{r}
+fourhundo <- read_html("https://www.tfrrs.org/results/75041/4566032/NCAA_Division_III_Outdoor_Track__Field_Championships/Mens-400-Meters")
+fourHundo_table <- html_nodes(fourhundo, css = "table")
+fourHundoPrelims <- html_table(fourhundo, header = TRUE, fill = TRUE)[[2]]
+fourHundoFinals <- html_table(fourhundo, header = TRUE, fill = TRUE)[[1]]
+fourHundoFinals
+fourHundoPrelims
+write_csv(fourHundoFinals, "~/Mscs 264 F22/Project/Henry_Andrew/Data/four_hundred_finals.csv")
+write_csv(fourHundoPrelims, "~/Mscs 264 F22/Project/Henry_Andrew/Data/four_hundred_prelims.csv")
+
+Geographical_400 <- left_join(fourHundoPrelims, school_data, by = c("TEAM" = "schools")) %>%
+  extract(school_locations, into = c("City", "State"), regex = "([^,]+), ([^,]+)") %>%
+  print(n = Inf)
+write.csv(Geographical_400, "~/Mscs 264 F22/Project/Henry_Andrew/Data/Geographical_400.csv")
+```
+
+```{r}
+createtibble400 <- function(htmllink, n, name){
+  url <- read_html(str_c(htmllink))
+  
+  times <- url %>%
+    html_nodes(str_c(".indoor:nth-child(",n,") div a")) %>%
+    html_text()
+
+meets <- url %>%
+  html_nodes(str_c('.indoor:nth-child(',n,') .panel-heading-text+ .panel-heading-text a')) %>%
+  html_text()
+
+dates <- url %>%
+  html_nodes(str_c('.indoor:nth-child(',n,') .panel-heading-normal-text')) %>%
+  html_text()
+
+athlete_tibble <- tibble(times, meets, dates)
+new_tibble <- athlete_tibble %>%
+  mutate(dates = str_remove_all(dates, "\n"),
+         dates = str_trim(dates, side = "both")) %>%
+  mutate(dates = str_remove(dates, "(\\d)+-"),
+         dates = mdy(dates)) %>%
+  filter(dates >= '2022-01-01') %>%
+  mutate(runner = name) %>%
+new_tibble
+}
+```
+
+
+```{r}
+Gregory <- createtibble400("https://www.tfrrs.org/athletes/7048353/Gallaudet/Eric_Gregory.html", "12", "Eric Gregory")
+Gregory
+Wright <- createtibble400("https://www.tfrrs.org/athletes/6592837/Wartburg/Dallas_Wright.html", "14", "Dallas Wright")
+Wright
+Anderson <- createtibble400("https://www.tfrrs.org/athletes/6600546/Benedictine_IL/DJ_Anderson.html", "14", "DJ Anderson")
+Anderson
+Traore <- createtibble400("https://www.tfrrs.org/athletes/7481356/Ramapo/Cheickna_Traore.html", "14", "Cheickna Traore")
+Traore
+Storm <- createtibble400("https://www.tfrrs.org/athletes/7480562/Mount_Union/Jared__Storm.html", "16", "Jared Storm")
+Storm
+McBride <- createtibble400("https://www.tfrrs.org/athletes/7480557/Mount_Union/Matt_McBride.html", "8", "Matt McBride")
+McBride
+Miller <- createtibble400("https://www.tfrrs.org/athletes/7731953/East_Texas_Baptist/Rangel_Miller.html", "8", "Rangel Miller")
+Miller
+Brown <- createtibble400("https://www.tfrrs.org/athletes/7550199/Olivet/Jordon_Brown.html", "12", "Jordon Brown")
+Brown
+Dickinson <- createtibble400("https://www.tfrrs.org/athletes/7032799/Nebraska_Wesleyan/Kyle_Dickinson.html", "8", "Kyle Dickinson")
+Dickinson
+Pierce <- createtibble400("https://www.tfrrs.org/athletes/7759924/Knox/Tyrell_Pierce.html", "12", "Tyrell Pierce")
+Pierce
+Frost <- createtibble400("https://www.tfrrs.org/athletes/7760014/Dubuque/JoJo_Frost.html", "14", "JoJo Frost")
+Frost
+Sheridan <- createtibble400("https://www.tfrrs.org/athletes/7055067/Geneseo_St/Kieran_Sheridan.html", "8", "Kieran Sheridan")
+Sheridan
+Wright_cal <- createtibble400("https://www.tfrrs.org/athletes/7011342/Concordia_Moorhead/Cal_Wright.html", "12", "Cal Wright")
+Wright_cal
+Cianciolo <- createtibble400("https://www.tfrrs.org/athletes/6898562/Babson/Colin_Cianciolo.html", "9", "Colin Cianciolo")
+Cianciolo
+Jeffes <- createtibble400("https://www.tfrrs.org/athletes/7834803/Delhi/Josh_Jeffes.html", "14", "Josh Jeffes")
+Jeffes
+Botsford <- createtibble400("https://www.tfrrs.org/athletes/7821641/Tufts/Luke_Botsford.html","14", "Luke Botsford")
+Botsford
+Bennett <- createtibble400("https://www.tfrrs.org/athletes/8011279/UMass_Dartmouth/David_Bennett.html", "16", "David Bennett")
+Bennett
+Redmond <- createtibble400("https://www.tfrrs.org/athletes/7900669/Elmhurst/Braxston_Redmond.html", "5", "Braxston Redmond")
+Redmond
+Sloan <- createtibble400("https://www.tfrrs.org/athletes/7494715/McMurry/Jayden_Sloan.html", "10", "Jayden Sloan")
+Sloan
+Pratt <- createtibble400("https://www.tfrrs.org/athletes/7033964/Hardin_Simmons/Malik_Pratt.html", "12", "Malik Pratt")
+Pratt
+
+all_races_400 <- rbind(Gregory, Wright, Anderson, Traore, Storm, McBride, Miller, Brown, Dickinson, Pierce, Frost, Sheridan, Wright_cal, Cianciolo, Jeffes, Botsford, Bennett, Redmond, Sloan, Pratt)%>%
+  print(n = Inf)
+  
+all_races_400_finals <- all_races_400 %>%
+  filter(meets == "NCAA Division III Outdoor Track & Field Championships") %>%
+  group_by(runner) %>%
+  summarise(n = n()) %>%
+  mutate(finals = ifelse(n == 2, TRUE, FALSE)) %>%
+  select(finals, runner) %>%
+  full_join(all_races_400) %>%
+  mutate(times = as.double(times)) %>%
+  print(n = Inf)
+
+all_races_split_nats_400 <- all_races_400_finals %>%
+  filter(meets == "NCAA Division III Outdoor Track & Field Championships", finals == TRUE)
+
+all_races_400_natty_finals <- fourHundoFinals %>%
+  rename("times" = "TIME") %>%
+  inner_join(all_races_400_finals) %>%
+  filter(finals == TRUE) %>%
+  select(times, finals, runner, meets, dates) %>%
+  mutate(NCAA_Final = TRUE) %>%
+  full_join(all_races_400_finals, by = c("times", "finals", "runner", "meets", "dates")) %>%
+  mutate(NCAA_Final = ifelse(is.na(NCAA_Final), FALSE, NCAA_Final)) %>%
+  print(n = Inf) 
+  
+all_races_400_tidy <- fourHundoFinals %>%
+  rename("times" = "TIME") %>%
+  inner_join(all_races_400_finals) %>%
+  filter(finals == TRUE) %>%
+  select(times, finals, runner, meets, dates) %>%
+  mutate(NCAA_Final = TRUE) %>%
+  full_join(all_races_400_finals, by = c("times", "finals", "runner", "meets", "dates")) %>%
+  mutate(NCAA_Final = ifelse(is.na(NCAA_Final), FALSE, NCAA_Final)) %>%
+  filter(NCAA_Final == TRUE) %>%
+  head(n = 8) %>%
+  mutate(all_american = TRUE) %>%
+  full_join(all_races_400_natty_finals, by = c("times", "finals", "runner", "meets", "dates", "NCAA_Final")) %>%
+  mutate(all_american = ifelse(is.na(all_american), FALSE, all_american)) %>%
+  group_by(all_american, runner) %>%
+  summarise(n = n()) %>%
+  filter(all_american == TRUE) %>%
+  full_join(all_races_400_natty_finals) %>%
+  mutate(all_american = ifelse(is.na(all_american), FALSE, all_american)) %>%
+  print(n = Inf) 
+
+write_csv(all_races_400_tidy, "~/Mscs 264 F22/Project/Henry_Andrew/Data/all_races_400_tidy.csv")
+
+```
+

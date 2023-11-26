@@ -1,0 +1,903 @@
+---
+title: "Project Webscraping"
+author: "Andrew Skemp and Henry Fisher"
+date: "12/1/2022"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 4.5
+  html_document: default
+word_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(httr)
+library(rvest)
+library(lubridate)
+```
+
+
+All-Americans
+100
+  Sam Blaskowski
+```{r}
+#After we did this, Andrew made a function to scrape the data more easily. When we did this, Henry tried to make a function but it didn't work, so he decided to brute force the scraping. It also has some data that we did not end up using, teaching Henry a valuable lesson in planning.
+
+#We'll leave comments on the first athlete scraping to show how Henry's brute force method works
+
+blaskowski_60_times <- read_html(
+  'https://www.tfrrs.org/athletes/8023536/Wis_La_Crosse/Sam_Blaskowski.html') %>%
+  html_nodes(".indoor:nth-child(5) div a") %>%
+  html_text()
+
+#here we scrape nodes for Sam Blaskowski's 60 meter times. We had to do all of the events seperately because each athlete's progression page is different on TFRRS
+
+blaskowski_60_meets <- read_html(
+  'https://www.tfrrs.org/athletes/8023536/Wis_La_Crosse/Sam_Blaskowski.html') %>%
+  html_nodes(".indoor:nth-child(5) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+#this scrapes the column for the meet names. For the most part we did not end up using this data.
+
+blaskowski_60_dates <- read_html(
+  'https://www.tfrrs.org/athletes/8023536/Wis_La_Crosse/Sam_Blaskowski.html') %>%
+  html_nodes(".indoor:nth-child(5) .panel-heading-normal-text") %>%
+  html_text()
+
+#this scrapes dates for the 60m races
+
+blaskowski_60 <- data.frame(blaskowski_60_times, blaskowski_60_meets, blaskowski_60_dates) %>%
+  rename(time = blaskowski_60_times, meet = blaskowski_60_meets, date = blaskowski_60_dates) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         event = "60",
+         wind = "0.0")
+
+#We turn this into a tibble for Sam Blaskowski's 60m races. We also add some information, like how wind is 0 m/s indoors (which allows us to add a wind column for the 100 and 200 races, which we did use a lot).
+
+#Below we repeat this process for Blaskowski's 100 and 200 races
+
+blaskowski_100_times <- read_html(
+  'https://www.tfrrs.org/athletes/8023536/Wis_La_Crosse/Sam_Blaskowski.html') %>%
+  html_nodes(".indoor:nth-child(7) div a") %>%
+  html_text()
+
+blaskowski_100_meets <- read_html(
+  'https://www.tfrrs.org/athletes/8023536/Wis_La_Crosse/Sam_Blaskowski.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+blaskowski_100_dates <- read_html(
+  'https://www.tfrrs.org/athletes/8023536/Wis_La_Crosse/Sam_Blaskowski.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-normal-text") %>%
+  html_text()
+
+blaskowski_wind_100 <- read_html(
+  'https://www.tfrrs.org/athletes/8023536/Wis_La_Crosse/Sam_Blaskowski.html') %>%
+  html_nodes(".indoor:nth-child(7) div span") %>%
+  html_text()
+
+blaskowski_100 <- data.frame(blaskowski_100_times, blaskowski_100_meets, blaskowski_100_dates, blaskowski_wind_100) %>%
+  rename(time = blaskowski_100_times, meet = blaskowski_100_meets, date = blaskowski_100_dates, wind = blaskowski_wind_100) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         wind = str_trim(wind),
+         event = "100")
+
+
+blaskowski_200_times <- read_html(
+  'https://www.tfrrs.org/athletes/8023536/Wis_La_Crosse/Sam_Blaskowski.html') %>%
+  html_nodes(".indoor:nth-child(9) div a") %>%
+  html_text()
+
+blaskowski_200_meets <- read_html(
+  'https://www.tfrrs.org/athletes/8023536/Wis_La_Crosse/Sam_Blaskowski.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+blaskowski_200_dates <- read_html(
+  'https://www.tfrrs.org/athletes/8023536/Wis_La_Crosse/Sam_Blaskowski.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-normal-text") %>%
+  html_text()
+
+blaskowski_wind_200 <- read_html(
+  'https://www.tfrrs.org/athletes/8023536/Wis_La_Crosse/Sam_Blaskowski.html') %>%
+  html_nodes(".indoor:nth-child(9) div span") %>%
+  html_text()
+
+blaskowski_200 <- data.frame(blaskowski_200_times, blaskowski_200_meets, blaskowski_200_dates, blaskowski_wind_200) %>%
+  rename(time = blaskowski_200_times, meet = blaskowski_200_meets, date = blaskowski_200_dates, wind = blaskowski_wind_200) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         wind = str_trim(wind),
+         event = "200")
+
+blaskowski <- rbind(blaskowski_60, blaskowski_100, blaskowski_200) %>%
+  mutate(athlete = "Sam Blaskowski") %>%
+  select(6,4,1,5,3,2)
+blaskowski
+#here we add the athlete variable for when we bind all the all-americans' data together later
+```
+
+Naquille Harris
+```{r}
+#we eventually realized that the only thing that changes with the nodes is one number in the middle, which varied based on how many events down on the athlete's progression page we were. This made scraping easier. 
+
+harris_times_60 <- read_html('https://www.tfrrs.org/athletes/7834798/Delhi/Naquille_Harris.html') %>%
+  html_nodes(".indoor:nth-child(5) div a") %>%
+  html_text()
+  harris_meets_60 <- read_html('https://www.tfrrs.org/athletes/7834798/Delhi/Naquille_Harris.html') %>%
+  html_nodes(".indoor:nth-child(5) .panel-heading-text:nth-child(2)") %>%
+  html_text()
+  harris_dates_60 <- read_html('https://www.tfrrs.org/athletes/7834798/Delhi/Naquille_Harris.html') %>%
+  html_nodes(".indoor:nth-child(5) .panel-heading-normal-text") %>%
+  html_text()
+  harris_60 <- data.frame(harris_times_60, harris_meets_60, harris_dates_60) %>%
+  rename(time = harris_times_60, meet = harris_meets_60, date = harris_dates_60) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         event = "60",
+         wind = "0.0")
+  harris_times_100 <- read_html('https://www.tfrrs.org/athletes/7834798/Delhi/Naquille_Harris.html') %>%
+  html_nodes(".indoor:nth-child(7) div a") %>%
+  html_text()
+  harris_meets_100 <- read_html('https://www.tfrrs.org/athletes/7834798/Delhi/Naquille_Harris.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+  harris_dates_100 <- read_html('https://www.tfrrs.org/athletes/7834798/Delhi/Naquille_Harris.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-normal-text") %>%
+  html_text()
+  harris_wind_100 <- read_html('https://www.tfrrs.org/athletes/7834798/Delhi/Naquille_Harris.html') %>%
+  html_nodes(".indoor:nth-child(7) div span") %>%
+  html_text()
+  harris_100 <- data.frame(harris_times_100, harris_meets_100, harris_dates_100, harris_wind_100) %>%
+  rename(time = harris_times_100, meet = harris_meets_100, date = harris_dates_100, wind = harris_wind_100) %>%
+  mutate(date = str_trim(date),
+         wind = str_trim(wind),
+         meet = str_trim(meet),
+         event = "100")
+  harris_times_200 <- read_html('https://www.tfrrs.org/athletes/7834798/Delhi/Naquille_Harris.html') %>%
+  html_nodes(".indoor:nth-child(9) div a") %>%
+  html_text()
+  harris_meets_200 <- read_html('https://www.tfrrs.org/athletes/7834798/Delhi/Naquille_Harris.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-text:nth-child(2)") %>%
+  html_text()
+  harris_dates_200 <- read_html('https://www.tfrrs.org/athletes/7834798/Delhi/Naquille_Harris.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-normal-text") %>%
+  html_text()
+  harris_wind_200 <- read_html('https://www.tfrrs.org/athletes/7834798/Delhi/Naquille_Harris.html') %>%
+  html_nodes(".indoor:nth-child(9) div span") %>%
+  html_text()
+  harris_200 <- data.frame(harris_times_200, harris_meets_200, harris_dates_200, harris_wind_200) %>%
+  rename(time = harris_times_200, meet = harris_meets_200, date = harris_dates_200, wind = harris_wind_200) %>%
+  mutate(date = str_trim(date),
+         wind = str_trim(wind),
+         meet = str_trim(meet),
+         event = "200")
+harris <- rbind(harris_60, harris_100, harris_200) %>%
+  mutate(athlete = "Naquille Harris") %>%
+  select(6,4,1,5,3,2)
+```
+
+
+
+
+JP Vaught
+```{r}
+vaught_60_times <- read_html(
+  'https://www.tfrrs.org/athletes/7541535/Centre/JP_Vaught.html') %>%
+  html_nodes(".indoor:nth-child(5) div a") %>%
+  html_text()
+
+vaught_60_meets <- read_html(
+  'https://www.tfrrs.org/athletes/7541535/Centre/JP_Vaught.html') %>%
+  html_nodes(".indoor:nth-child(5) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+vaught_60_dates <- read_html(
+  'https://www.tfrrs.org/athletes/7541535/Centre/JP_Vaught.html') %>%
+  html_nodes(".indoor:nth-child(5) .panel-heading-normal-text") %>%
+  html_text()
+
+vaught_60 <- data.frame(vaught_60_times, vaught_60_meets, vaught_60_dates) %>%
+  rename(time = vaught_60_times, meet = vaught_60_meets, date = vaught_60_dates) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         event = "60",
+         wind = "0.0")
+
+
+vaught_100_times <- read_html(
+  'https://www.tfrrs.org/athletes/7541535/Centre/JP_Vaught.html') %>%
+  html_nodes(".indoor:nth-child(7) div a") %>%
+  html_text()
+
+vaught_100_meets <- read_html(
+  'https://www.tfrrs.org/athletes/7541535/Centre/JP_Vaught.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+vaught_100_dates <- read_html(
+  'https://www.tfrrs.org/athletes/7541535/Centre/JP_Vaught.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-normal-text") %>%
+  html_text()
+
+vaught_wind_100 <- read_html(
+  'https://www.tfrrs.org/athletes/7541535/Centre/JP_Vaught.html') %>%
+  html_nodes(".indoor:nth-child(7) div span") %>%
+  html_text()
+
+vaught_100 <- data.frame(vaught_100_times, vaught_100_meets, vaught_100_dates, vaught_wind_100) %>%
+  rename(time = vaught_100_times, meet = vaught_100_meets, date = vaught_100_dates, wind = vaught_wind_100) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         wind = str_trim(wind),
+         event = "100")
+
+
+vaught_200_times <- read_html(
+  'https://www.tfrrs.org/athletes/7541535/Centre/JP_Vaught.html') %>%
+  html_nodes(".indoor:nth-child(9) div a") %>%
+  html_text()
+
+vaught_200_meets <- read_html(
+  'https://www.tfrrs.org/athletes/7541535/Centre/JP_Vaught.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+vaught_200_dates <- read_html(
+  'https://www.tfrrs.org/athletes/7541535/Centre/JP_Vaught.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-normal-text") %>%
+  html_text()
+
+vaught_wind_200 <- read_html(
+  'https://www.tfrrs.org/athletes/7541535/Centre/JP_Vaught.html') %>%
+  html_nodes(".indoor:nth-child(9) div span") %>%
+  html_text()
+
+vaught_200 <- data.frame(vaught_200_times, vaught_200_meets, vaught_200_dates, vaught_wind_200) %>%
+  rename(time = vaught_200_times, meet = vaught_200_meets, date = vaught_200_dates, wind = vaught_wind_200) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         wind = str_trim(wind),
+         event = "200")
+
+vaught <- rbind(vaught_60, vaught_100, vaught_200) %>%
+  mutate(athlete = "JP Vaught") %>%
+  select(6,4,1,5,3,2)
+```
+
+
+
+Jamauri Spivery
+```{r}
+spivery_60_times <- read_html(
+  'https://www.tfrrs.org/athletes/7489103/North_Central_IL/Jamauri_Spivery.html') %>%
+  html_nodes(".indoor:nth-child(7) div a") %>%
+  html_text()
+
+spivery_60_meets <- read_html(
+  'https://www.tfrrs.org/athletes/7489103/North_Central_IL/Jamauri_Spivery.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+spivery_60_dates <- read_html(
+  'https://www.tfrrs.org/athletes/7489103/North_Central_IL/Jamauri_Spivery.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-normal-text") %>%
+  html_text()
+
+spivery_60 <- data.frame(spivery_60_times, spivery_60_meets, spivery_60_dates) %>%
+  rename(time = spivery_60_times, meet = spivery_60_meets, date = spivery_60_dates) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         event = "60",
+         wind = "0.0")
+
+
+spivery_100_times <- read_html(
+  'https://www.tfrrs.org/athletes/7489103/North_Central_IL/Jamauri_Spivery.html') %>%
+  html_nodes(".indoor:nth-child(9) div a") %>%
+  html_text()
+
+spivery_100_meets <- read_html(
+  'https://www.tfrrs.org/athletes/7489103/North_Central_IL/Jamauri_Spivery.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+spivery_100_dates <- read_html(
+  'https://www.tfrrs.org/athletes/7489103/North_Central_IL/Jamauri_Spivery.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-normal-text") %>%
+  html_text()
+
+spivery_wind_100 <- read_html(
+  'https://www.tfrrs.org/athletes/7489103/North_Central_IL/Jamauri_Spivery.html') %>%
+  html_nodes(".indoor:nth-child(9) div span") %>%
+  html_text()
+
+spivery_100 <- data.frame(spivery_100_times, spivery_100_meets, spivery_100_dates, spivery_wind_100) %>%
+  rename(time = spivery_100_times, meet = spivery_100_meets, date = spivery_100_dates, wind = spivery_wind_100) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         wind = str_trim(wind),
+         event = "100")
+
+
+spivery_200_times <- read_html(
+  'https://www.tfrrs.org/athletes/7489103/North_Central_IL/Jamauri_Spivery.html') %>%
+  html_nodes(".indoor:nth-child(11) div a") %>%
+  html_text()
+
+spivery_200_meets <- read_html(
+  'https://www.tfrrs.org/athletes/7489103/North_Central_IL/Jamauri_Spivery.html') %>%
+  html_nodes(".indoor:nth-child(11) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+spivery_200_dates <- read_html(
+  'https://www.tfrrs.org/athletes/7489103/North_Central_IL/Jamauri_Spivery.html') %>%
+  html_nodes(".indoor:nth-child(11) .panel-heading-normal-text") %>%
+  html_text()
+
+spivery_wind_200 <- read_html(
+  'https://www.tfrrs.org/athletes/7489103/North_Central_IL/Jamauri_Spivery.html') %>%
+  html_nodes(".indoor:nth-child(11) div span") %>%
+  html_text()
+
+spivery_200 <- data.frame(spivery_200_times, spivery_200_meets, spivery_200_dates, spivery_wind_200) %>%
+  rename(time = spivery_200_times, meet = spivery_200_meets, date = spivery_200_dates, wind = spivery_wind_200) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         wind = str_trim(wind),
+         event = "200")
+
+spivery <- rbind(spivery_60, spivery_100, spivery_200) %>%
+  mutate(athlete = "Jamauri Spivery") %>%
+  select(6,4,1,5,3,2)
+```
+
+
+
+Robert Ogbuli
+```{r}
+ogbuli_60_times <- read_html(
+  'https://www.tfrrs.org/athletes/6591269/Wis_Oshkosh/Robert_Ogbuli.html') %>%
+  html_nodes(".indoor:nth-child(7) div a") %>%
+  html_text()
+
+ogbuli_60_meets <- read_html(
+  'https://www.tfrrs.org/athletes/6591269/Wis_Oshkosh/Robert_Ogbuli.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+ogbuli_60_dates <- read_html(
+  'https://www.tfrrs.org/athletes/6591269/Wis_Oshkosh/Robert_Ogbuli.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-normal-text") %>%
+  html_text()
+
+ogbuli_60 <- data.frame(ogbuli_60_times, ogbuli_60_meets, ogbuli_60_dates) %>%
+  rename(time = ogbuli_60_times, meet = ogbuli_60_meets, date = ogbuli_60_dates) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         event = "60",
+         wind = "0.0")
+
+
+ogbuli_100_times <- read_html(
+  'https://www.tfrrs.org/athletes/6591269/Wis_Oshkosh/Robert_Ogbuli.html') %>%
+  html_nodes(".indoor:nth-child(9) div a") %>%
+  html_text()
+
+ogbuli_100_meets <- read_html(
+  'https://www.tfrrs.org/athletes/6591269/Wis_Oshkosh/Robert_Ogbuli.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+ogbuli_100_dates <- read_html(
+  'https://www.tfrrs.org/athletes/6591269/Wis_Oshkosh/Robert_Ogbuli.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-normal-text") %>%
+  html_text()
+
+ogbuli_wind_100 <- read_html(
+  'https://www.tfrrs.org/athletes/6591269/Wis_Oshkosh/Robert_Ogbuli.html') %>%
+  html_nodes(".indoor:nth-child(9) div span") %>%
+  html_text()
+
+ogbuli_100 <- data.frame(ogbuli_100_times, ogbuli_100_meets, ogbuli_100_dates, ogbuli_wind_100) %>%
+  rename(time = ogbuli_100_times, meet = ogbuli_100_meets, date = ogbuli_100_dates, wind = ogbuli_wind_100) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         wind = str_trim(wind),
+         event = "100")
+
+
+ogbuli_200_times <- read_html(
+  'https://www.tfrrs.org/athletes/6591269/Wis_Oshkosh/Robert_Ogbuli.html') %>%
+  html_nodes(".indoor:nth-child(11) div a") %>%
+  html_text()
+
+ogbuli_200_meets <- read_html(
+  'https://www.tfrrs.org/athletes/6591269/Wis_Oshkosh/Robert_Ogbuli.html') %>%
+  html_nodes(".indoor:nth-child(11) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+ogbuli_200_dates <- read_html(
+  'https://www.tfrrs.org/athletes/6591269/Wis_Oshkosh/Robert_Ogbuli.html') %>%
+  html_nodes(".indoor:nth-child(11) .panel-heading-normal-text") %>%
+  html_text()
+
+ogbuli_wind_200 <- read_html(
+  'https://www.tfrrs.org/athletes/6591269/Wis_Oshkosh/Robert_Ogbuli.html') %>%
+  html_nodes(".indoor:nth-child(11) div span") %>%
+  html_text()
+
+ogbuli_200 <- data.frame(ogbuli_200_times, ogbuli_200_meets, ogbuli_200_dates, ogbuli_wind_200) %>%
+  rename(time = ogbuli_200_times, meet = ogbuli_200_meets, date = ogbuli_200_dates, wind = ogbuli_wind_200) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         wind = str_trim(wind),
+         event = "200")
+
+ogbuli <- rbind(ogbuli_60, ogbuli_100, ogbuli_200) %>%
+  mutate(athlete = "Robert Ogbuli") %>%
+  select(6,4,1,5,3,2)
+```
+
+
+
+
+Cade VanHout
+```{r}
+vanhout_60_times <- read_html(
+  'https://www.tfrrs.org/athletes/7605882/Wis_Platteville/Cade_VanHout.html') %>%
+  html_nodes(".indoor:nth-child(5) div a") %>%
+  html_text()
+
+vanhout_60_meets <- read_html(
+  'https://www.tfrrs.org/athletes/7605882/Wis_Platteville/Cade_VanHout.html') %>%
+  html_nodes(".indoor:nth-child(5) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+vanhout_60_dates <- read_html(
+  'https://www.tfrrs.org/athletes/7605882/Wis_Platteville/Cade_VanHout.html') %>%
+  html_nodes(".indoor:nth-child(5) .panel-heading-normal-text") %>%
+  html_text()
+
+vanhout_60 <- data.frame(vanhout_60_times, vanhout_60_meets, vanhout_60_dates) %>%
+  rename(time = vanhout_60_times, meet = vanhout_60_meets, date = vanhout_60_dates) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         event = "60",
+         wind = "0.0")
+
+
+vanhout_100_times <- read_html(
+  'https://www.tfrrs.org/athletes/7605882/Wis_Platteville/Cade_VanHout.html') %>%
+  html_nodes(".indoor:nth-child(7) div a") %>%
+  html_text()
+
+vanhout_100_meets <- read_html(
+  'https://www.tfrrs.org/athletes/7605882/Wis_Platteville/Cade_VanHout.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+vanhout_100_dates <- read_html(
+  'https://www.tfrrs.org/athletes/7605882/Wis_Platteville/Cade_VanHout.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-normal-text") %>%
+  html_text()
+
+vanhout_wind_100 <- read_html(
+  'https://www.tfrrs.org/athletes/7605882/Wis_Platteville/Cade_VanHout.html') %>%
+  html_nodes(".indoor:nth-child(7) div span") %>%
+  html_text()
+
+vanhout_100 <- data.frame(vanhout_100_times, vanhout_100_meets, vanhout_100_dates, vanhout_wind_100) %>%
+  rename(time = vanhout_100_times, meet = vanhout_100_meets, date = vanhout_100_dates, wind = vanhout_wind_100) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         wind = str_trim(wind),
+         event = "100")
+
+
+vanhout_200_times <- read_html(
+  'https://www.tfrrs.org/athletes/7605882/Wis_Platteville/Cade_VanHout.html') %>%
+  html_nodes(".indoor:nth-child(9) div a") %>%
+  html_text()
+
+vanhout_200_meets <- read_html(
+  'https://www.tfrrs.org/athletes/7605882/Wis_Platteville/Cade_VanHout.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+vanhout_200_dates <- read_html(
+  'https://www.tfrrs.org/athletes/7605882/Wis_Platteville/Cade_VanHout.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-normal-text") %>%
+  html_text()
+
+vanhout_wind_200 <- read_html(
+  'https://www.tfrrs.org/athletes/7605882/Wis_Platteville/Cade_VanHout.html') %>%
+  html_nodes(".indoor:nth-child(9) div span") %>%
+  html_text()
+
+vanhout_200 <- data.frame(vanhout_200_times, vanhout_200_meets, vanhout_200_dates, vanhout_wind_200) %>%
+  rename(time = vanhout_200_times, meet = vanhout_200_meets, date = vanhout_200_dates, wind = vanhout_wind_200) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         wind = str_trim(wind),
+         event = "200")
+
+vanhout <- rbind(vanhout_60, vanhout_100, vanhout_200) %>%
+  mutate(athlete = "Cade VanHout") %>%
+  select(6,4,1,5,3,2)
+```
+
+Derrick Jackson
+```{r}
+jackson_60_times <- read_html(
+  'https://www.tfrrs.org/athletes/7038828/Knox/Derrick__Jackson.html') %>%
+  html_nodes(".indoor:nth-child(7) div a") %>%
+  html_text()
+
+jackson_60_meets <- read_html(
+  'https://www.tfrrs.org/athletes/7038828/Knox/Derrick__Jackson.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+jackson_60_dates <- read_html(
+  'https://www.tfrrs.org/athletes/7038828/Knox/Derrick__Jackson.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-normal-text") %>%
+  html_text()
+
+jackson_60 <- data.frame(jackson_60_times, jackson_60_meets, jackson_60_dates) %>%
+  rename(time = jackson_60_times, meet = jackson_60_meets, date = jackson_60_dates) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         event = "60",
+         wind = "0.0")
+
+
+jackson_100_times <- read_html(
+  'https://www.tfrrs.org/athletes/7038828/Knox/Derrick__Jackson.html') %>%
+  html_nodes(".indoor:nth-child(9) div:nth-child(1) a") %>%
+  html_text()
+
+jackson_100_meets <- read_html(
+  'https://www.tfrrs.org/athletes/7038828/Knox/Derrick__Jackson.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+jackson_100_dates <- read_html(
+  'https://www.tfrrs.org/athletes/7038828/Knox/Derrick__Jackson.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-normal-text") %>%
+  html_text()
+
+jackson_wind_100 <- read_html(
+  'https://www.tfrrs.org/athletes/7038828/Knox/Derrick__Jackson.html') %>%
+  html_nodes(".indoor:nth-child(9) div span") %>%
+  html_text()
+
+jackson_100 <- data.frame(jackson_100_times, jackson_100_meets, jackson_100_dates, jackson_wind_100) %>%
+  rename(time = jackson_100_times, meet = jackson_100_meets, date = jackson_100_dates, wind = jackson_wind_100) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         wind = str_trim(wind),
+         event = "100")
+
+
+jackson_200_times <- read_html(
+  'https://www.tfrrs.org/athletes/7038828/Knox/Derrick__Jackson.html') %>%
+  html_nodes(".indoor:nth-child(11) div:nth-child(1) a") %>%
+  html_text()
+
+jackson_200_meets <- read_html(
+  'https://www.tfrrs.org/athletes/7038828/Knox/Derrick__Jackson.html') %>%
+  html_nodes(".indoor:nth-child(11) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+jackson_200_dates <- read_html(
+  'https://www.tfrrs.org/athletes/7038828/Knox/Derrick__Jackson.html') %>%
+  html_nodes(".indoor:nth-child(11) .panel-heading-normal-text") %>%
+  html_text()
+
+jackson_wind_200 <- read_html(
+  'https://www.tfrrs.org/athletes/7038828/Knox/Derrick__Jackson.html') %>%
+  html_nodes(".indoor:nth-child(11) div span") %>%
+  html_text()
+
+jackson_200 <- data.frame(jackson_200_times, jackson_200_meets, jackson_200_dates, jackson_wind_200) %>%
+  rename(time = jackson_200_times, meet = jackson_200_meets, date = jackson_200_dates, wind = jackson_wind_200) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         wind = str_trim(wind),
+         event = "200")
+
+jackson <- rbind(jackson_60, jackson_100, jackson_200) %>%
+  mutate(athlete = "Derrick Jackson") %>%
+  select(6,4,1,5,3,2)
+```
+
+Aaron Richardson
+```{r}
+richardson_60_times <- read_html(
+  'https://www.tfrrs.org/athletes/6991599/Wis_Oshkosh/Aaron_Richardson.html') %>%
+  html_nodes(".indoor:nth-child(5) div a") %>%
+  html_text()
+
+richardson_60_meets <- read_html(
+  'https://www.tfrrs.org/athletes/6991599/Wis_Oshkosh/Aaron_Richardson.html') %>%
+  html_nodes(".indoor:nth-child(5) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+richardson_60_dates <- read_html(
+  'https://www.tfrrs.org/athletes/6991599/Wis_Oshkosh/Aaron_Richardson.html') %>%
+  html_nodes(".indoor:nth-child(5) .panel-heading-normal-text") %>%
+  html_text()
+
+richardson_60 <- data.frame(richardson_60_times, richardson_60_meets, richardson_60_dates) %>%
+  rename(time = richardson_60_times, meet = richardson_60_meets, date = richardson_60_dates) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         event = "60",
+         wind = "0.0")
+
+
+richardson_100_times <- read_html(
+  'https://www.tfrrs.org/athletes/6991599/Wis_Oshkosh/Aaron_Richardson.html') %>%
+  html_nodes(".indoor:nth-child(7) div a") %>%
+  html_text()
+
+richardson_100_meets <- read_html(
+  'https://www.tfrrs.org/athletes/6991599/Wis_Oshkosh/Aaron_Richardson.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+richardson_100_dates <- read_html(
+  'https://www.tfrrs.org/athletes/6991599/Wis_Oshkosh/Aaron_Richardson.html') %>%
+  html_nodes(".indoor:nth-child(7) .panel-heading-normal-text") %>%
+  html_text()
+
+richardson_wind_100 <- read_html(
+  'https://www.tfrrs.org/athletes/6991599/Wis_Oshkosh/Aaron_Richardson.html') %>%
+  html_nodes(".indoor:nth-child(7) div span") %>%
+  html_text()
+
+richardson_100 <- data.frame(richardson_100_times, richardson_100_meets, richardson_100_dates, richardson_wind_100) %>%
+  rename(time = richardson_100_times, meet = richardson_100_meets, date = richardson_100_dates, wind = richardson_wind_100) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         wind = str_trim(wind),
+         event = "100")
+
+
+richardson_200_times <- read_html(
+  'https://www.tfrrs.org/athletes/6991599/Wis_Oshkosh/Aaron_Richardson.html') %>%
+  html_nodes(".indoor:nth-child(9) div a") %>%
+  html_text()
+
+richardson_200_meets <- read_html(
+  'https://www.tfrrs.org/athletes/6991599/Wis_Oshkosh/Aaron_Richardson.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-text:nth-child(2) a") %>%
+  html_text()
+
+richardson_200_dates <- read_html(
+  'https://www.tfrrs.org/athletes/6991599/Wis_Oshkosh/Aaron_Richardson.html') %>%
+  html_nodes(".indoor:nth-child(9) .panel-heading-normal-text") %>%
+  html_text()
+
+richardson_wind_200 <- read_html(
+  'https://www.tfrrs.org/athletes/6991599/Wis_Oshkosh/Aaron_Richardson.html') %>%
+  html_nodes(".indoor:nth-child(9) div span") %>%
+  html_text()
+
+richardson_200 <- data.frame(richardson_200_times, richardson_200_meets, richardson_200_dates, richardson_wind_200) %>%
+  rename(time = richardson_200_times, meet = richardson_200_meets, date = richardson_200_dates, wind = richardson_wind_200) %>%
+  mutate(date = str_trim(date),
+         meet = str_trim(meet),
+         wind = str_trim(wind),
+         event = "200")
+
+richardson <- rbind(richardson_60, richardson_100, richardson_200) %>%
+  mutate(athlete = "Aaron Richardson") %>%
+  select(6,4,1,5,3,2)
+```
+
+
+```{r}
+hundredMeter <- read_html('https://tfrrs.org/results/75041/4566001/NCAA_Division_III_Outdoor_Track__Field_Championships/Mens-100-Meters')
+
+hundred <- html_nodes(hundredMeter, css = "table")
+hundred_final_mens_join <- html_table(hundred, header = TRUE, fill = TRUE)[[1]] %>%
+  mutate(wind = parse_double("1.7"),
+         date = make_date(year = 2022L, month = 5L, day = 28L),
+         meet = "NCAA Division III Outdoor Track & Field Championships",
+         event = "100") %>%
+  rename(place = PL,
+         athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         time = TIME,
+         score = SC) %>%
+  filter(score >= 1) %>%
+  select(2,10,5,7,8,9)
+
+hundred_prelims_mens_join <- html_table(hundred, header = TRUE, fill = TRUE)[[2]] %>%
+  mutate(date = make_date(year = 2022L, month = 5L, day = 26L),
+         meet = "NCAA Division III Outdoor Track & Field Championships",
+         event = "100") %>%
+  rename(place = PL,
+         athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         time = TIME,
+         wind = WIND) %>%
+  filter(time <= "10.62" & athlete != "Jaylen Grant") %>%
+  select(2,9,5,6,7,8)
+```
+
+```{r}
+#the dates for the championships prelims and finals were the same when we scraped the data, so here we split them up so they have correct dates (they happen on different days)
+hundred_final_mens_join2 <- html_table(hundred, header = TRUE, fill = TRUE)[[1]] %>%
+  mutate(wind = parse_double("1.7"),
+         date = make_date(year = 2022L, month = 5L, day = 28L),
+         meet = "NCAA Division III Outdoor Track & Field Championships",
+         event = "100",) %>%
+  rename(place = PL,
+         athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         time = TIME,
+         score = SC) %>%
+  mutate(athlete = ifelse(athlete == "Derrick  Jackson", "Derrick Jackson", athlete)) %>%
+  filter(athlete != "Jaylen Grant") %>%
+  select(1:4)
+```
+
+
+
+Hundred All-Americans
+```{r}
+#here we're cleaning the data, converting all of the variables into the appropriate type, and binding/joining everything together
+
+hundred_all_americans_progression <- rbind(
+  blaskowski, harris, vaught, spivery, ogbuli, vanhout, jackson, richardson) %>%
+  mutate(year_var = str_sub(date, -4L),
+         month_var = match(str_extract(date, "..."),month.abb),
+         day_var = str_extract(date, "\\d+"),
+         date = make_date(year = year_var, month = month_var, day = day_var),
+         wind = str_extract(wind, "-?\\d.\\d"),
+         time = parse_double(time)) %>%
+  filter(date != "2022-05-26" | event != "100") %>%
+  select(1:6)
+
+hundred_all_americans1 <- rbind(hundred_final_mens_join, hundred_prelims_mens_join, hundred_all_americans_progression) %>%
+  mutate(wind = parse_double(wind),
+         athlete = ifelse(athlete == "Derrick  Jackson", "Derrick Jackson", athlete))
+
+hundred_all_americans <- left_join(hundred_all_americans1, hundred_final_mens_join2) %>%
+  rename(final_2022 = place) %>%
+  select(1:6,8,9,7)
+
+write_csv(hundred_all_americans, "~/Mscs 264 F22/Project/Henry_Andrew/Data/hundred_all_americans.csv")
+
+```
+
+*this is where Andrew applied his function to scrape the progression data for all of the qualifiers instead of just the all-americans*
+```{r}
+createtibble100Special <- function(htmllink, n, name){
+  url <- read_html(str_c(htmllink))
+  
+  times <- url %>%
+    html_nodes(str_c('.indoor:nth-child(', n, ') div:nth-child(1) a')) %>%
+    html_text()
+
+meets <- url %>%
+  html_nodes(str_c('.indoor:nth-child(',n,') .panel-heading-text+ .panel-heading-text a')) %>%
+  html_text()
+
+dates <- url %>%
+  html_nodes(str_c('.indoor:nth-child(',n,') .panel-heading-normal-text')) %>%
+  html_text()
+
+athlete_tibble <- tibble(times, meets, dates)
+new_tibble <- athlete_tibble %>%
+  mutate(dates = str_remove_all(dates, "\n"),
+         dates = str_trim(dates, side = "both")) %>%
+  mutate(dates = str_remove(dates, "(\\d)+-"),
+         dates = mdy(dates)) %>%
+  filter(dates >= '2022-01-01') %>%
+  mutate(runner = name)
+new_tibble
+}
+
+hundred_html <- read_html("https://www.tfrrs.org/results/75041/4566001/NCAA_Division_III_Outdoor_Track__Field_Championships/Mens-100-Meters")
+hundred_nodes <- html_nodes(hundred_html, css = "table")
+hundred_finals <- html_table(hundred_html, header = TRUE, fill = TRUE)[[1]]
+hundred_prelims <- html_table(hundred_html, header = TRUE, fill = TRUE)[[2]]
+
+hundred_finals <- hundred_finals %>% mutate(NAME = str_replace(NAME, 
+                                            "Derrick  Jackson", "Derrick Jackson"),
+                                            NAME = str_replace(NAME, "Markelle Raymond-Hill ", "Markelle Raymond-Hill"))
+hundred_prelims %>% anti_join(all_races_100, by = c("NAME" = "runner"))
+
+Blaskowski <- createtibble400("https://www.tfrrs.org/athletes/8023536/Wis_La_Crosse/Sam_Blaskowski.html", "7", "Sam Blaskowski")
+Blaskowski
+Vaught <- createtibble400("https://www.tfrrs.org/athletes/7541535/Centre/JP_Vaught.html", "7", "JP Vaught")
+Harris <- createtibble400("https://www.tfrrs.org/athletes/7834798/Delhi/Naquille_Harris.html", "7", "Naquille Harris")
+Spivery <- createtibble400("https://www.tfrrs.org/athletes/7489103/North_Central_IL/Jamauri_Spivery.html", "9", "Jamauri Spivery")
+Ogbuli <- createtibble400("https://www.tfrrs.org/athletes/6591269/Wis_Oshkosh/Robert_Ogbuli.html", "9", "Robert Ogbuli")
+Jackson <- createtibble100Special("https://www.tfrrs.org/athletes/7038828/Knox/Derrick__Jackson.html", "9", "Derrick Jackson")
+Grant <- createtibble400("https://www.tfrrs.org/athletes/7488305/Wis_Oshkosh/Jaylen_Grant.html", "7", "Jaylen Grant")
+Richarson <- createtibble400("https://www.tfrrs.org/athletes/6991599/Wis_Oshkosh/Aaron_Richardson.html", "7", "Aaron Richardson")
+VanHout <- createtibble400("https://www.tfrrs.org/athletes/7605882/Wis_Platteville/Cade_VanHout.html", "7", "Cade VanHout")
+Raymond_Hill <- createtibble400("https://www.tfrrs.org/athletes/8064949/Redlands/Markelle_Raymond-Hill.html", "5", "Markelle Raymond-Hill")
+Shands <- createtibble400("https://www.tfrrs.org/athletes/7530616/Hardin_Simmons/Parnelle__Shands.html", "7", "Parnelle  Shands")
+Love <- createtibble400("https://www.tfrrs.org/athletes/7497282/Westminster_PA/Shamar_Love.html", "7", "Shamar Love")
+Arthur <- createtibble400("https://www.tfrrs.org/athletes/7495652/St_Johns_MN/Kevin_Arthur.html", "9", "Kevin Arthur")
+Lewis <- createtibble400("https://www.tfrrs.org/athletes/6632017/East_Texas_Baptist/Detaveon__Lewis.html", "7", "Detaveon  Lewis")
+Anderson <- createtibble400("https://www.tfrrs.org/athletes/7982168/Greenville/CJ_Anderson.html", "9", "CJ Anderson")
+Plitt <- createtibble400("https://www.tfrrs.org/athletes/7025531/Adrian/Derek_Plitt.html", "7", "Derek Plitt")
+Steed <- createtibble400("https://www.tfrrs.org/athletes/6542121/Dubuque/Jeremiah_Steed.html", "9", "Jeremiah Steed")
+Powell <- createtibble400("https://www.tfrrs.org/athletes/7770186/East_Texas_Baptist/Brandon_Powell.html", "7", "Brandon Powell")
+Lighten <- createtibble400("https://www.tfrrs.org/athletes/6986034/Bridgewater_St/Matthew_Lighten.html", "7", "Matthew Lighten")
+Johnson <- createtibble400("https://www.tfrrs.org/athletes/6898458/Eastern_Mennonite/Alijah_Johnson.html", "9", "Alijah Johnson")
+
+all_races_100 <- rbind(Harris, Vaught, Blaskowski, Spivery, Ogbuli, Jackson, Grant, Richarson, VanHout, Raymond_Hill, Shands, Love, Arthur, Lewis, Anderson, Plitt, Steed, Powell, Lighten, Johnson)%>%
+  print(n = Inf)
+  
+all_americans <- hundred_all_americans %>%
+  filter(date == "2022-05-28") %>%
+  mutate(all_american = TRUE,
+         runner = athlete,
+         times = time,
+         meets = meet,
+         finals = TRUE,
+         NCAA_Final = TRUE,
+         dates = date) %>%
+  select(all_american, runner, times, meets, finals, NCAA_Final, dates)
+
+all_races_100_finals <- all_races_100 %>%
+  filter(meets == "NCAA Division III Outdoor Track & Field Championships") %>%
+  group_by(runner) %>%
+  summarise(n = n()) %>%
+  mutate(finals = ifelse(n == 2, TRUE, FALSE)) %>%
+  select(finals, runner) %>%
+  full_join(all_races_100) %>%
+  mutate(times = as.double(times)) %>%
+  print(n = Inf)
+
+all_races_split_nats_100 <- all_races_100_finals %>%
+  filter(meets == "NCAA Division III Outdoor Track & Field Championships", finals == TRUE)
+
+all_races_100_natty_finals <- all_races_100_finals %>%
+  filter(dates == "2022-05-28") %>%
+  inner_join(hundred_finals, by = c("times" = "TIME", "runner" = "NAME")) %>%
+  filter(finals == TRUE) %>%
+  select(times, finals, runner, meets, dates) %>%
+  mutate(NCAA_Final = TRUE) %>%
+  full_join(all_races_100_finals, by = c("times", "finals", "runner", "meets", "dates")) %>%
+  mutate(NCAA_Final = ifelse(is.na(NCAA_Final), FALSE, NCAA_Final)) %>%
+  print(n = Inf) 
+  
+all_races_100_tidy <- all_races_100_finals %>%
+  inner_join(hundred_finals, by = c("times" = "TIME", "runner" = "NAME"))%>%
+  filter(finals == TRUE) %>%
+  select(times, finals, runner, meets, dates) %>%
+  mutate(NCAA_Final = TRUE) %>%
+  full_join(all_races_100_finals, by = c("times", "finals", "runner", "meets", "dates")) %>%
+  mutate(NCAA_Final = ifelse(is.na(NCAA_Final), FALSE, NCAA_Final)) %>%
+  full_join(all_americans, by = c("runner", "times", "meets", "finals", "NCAA_Final", "dates")) %>% 
+  mutate(all_american_race = ifelse(is.na(all_american), FALSE, TRUE)) %>%
+  filter(all_american_race == TRUE) %>%
+  group_by(all_american_race, runner) %>%
+  summarise(n = n()) %>%
+  full_join(all_races_100_natty_finals, by = c("runner")) %>% 
+  mutate(all_american = ifelse(is.na(all_american_race), FALSE, all_american_race)) %>%
+  ungroup %>%
+  select(all_american, runner, meets, finals, times, NCAA_Final) %>%
+  print(n = Inf) 
+
+write_csv(all_races_100_tidy, "~/Mscs 264 F22/Project/Henry_Andrew/Data/all_races_100_tidy.csv")
+```
+
