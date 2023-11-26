@@ -1,0 +1,313 @@
+---
+title: "Webscraping 1500"
+author: "Andrew Skemp and Henry Fisher"
+date: "12/5/2022"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 4.5
+  html_document: default
+word_document: default
+editor_options: 
+  chunk_output_type: console
+---
+```{r}
+library(tidyverse)
+library(stringr)
+library(httr)
+library(rvest)
+library(ggmap)
+```
+
+```{r}
+Locations <- read_html('https://www.ncsasports.org/division-3-colleges')
+schools <- Locations %>% 
+  html_nodes(".container link+ div") %>%
+  html_text()
+schools
+
+school_locations <- Locations %>%
+  html_nodes('.container link~ div:nth-child(3)') %>%
+  html_text()
+school_locations
+
+private <- Locations %>%
+  html_nodes("meta+ .container div:nth-child(4)") %>%
+  html_text()
+private
+
+conference <- Locations %>%
+  html_nodes("meta+ .container div:nth-child(5)") %>%
+  html_text()
+conference
+
+school_data <- tibble(schools, school_locations, private, conference) %>%
+         mutate(schools = str_remove(schools, " Colleges"),
+                schools = str_remove(schools, " College"),
+                schools = str_remove(schools, "University "),
+                schools = str_remove(schools, "of "),
+                schools = str_replace(schools, "Wisconsin – ", "Wis.-"),
+                schools = str_trim(schools, side = "both"),
+                schools = str_remove(schools, " University"),
+                schools = str_replace(schools, "– Minnesota", "(Minn.)"),
+                schools = str_remove(schools, "Massachusetts Institute Technology – "),
+                schools = str_replace(schools, "Washington", "Washington U."),
+                schools = str_remove(schools, "The "),
+                schools = str_replace(schools, "Steubenville", "(Ohio)"),
+                schools = str_remove(schools, " Reserve"),
+                schools = str_replace(schools, "Saint", "St."),
+                schools = str_replace(schools, "– Indiana ", ""))
+
+school_data %>%
+  print(n = Inf)
+```
+
+
+```{r}
+fifteenMeter <- read_html('https://tfrrs.org/results/75041/4566013/NCAA_Division_III_Outdoor_Track__Field_Championships/Mens-1500-Meters')
+fifteen <- html_nodes(fifteenMeter, css = "table")
+fifteen_final_mens <- html_table(fifteen, header = TRUE, fill = TRUE)[[1]]
+fifteen_prelims_mens <- html_table(fifteen, header = TRUE, fill = TRUE)[[2]]
+fifteen_final_mens
+fifteen_prelims_mens
+```
+
+```{r}
+Geographical_1500 <- left_join(fifteen_prelims_mens, school_data, by = c("TEAM" = "schools")) %>%
+  extract(school_locations, into = c("City", "State"), regex = "([^,]+), ([^,]+)") %>%
+  print(n = Inf)
+Geographical_mile <- left_join(mile_prelims, school_data, by = c("TEAM" = "schools")) %>% 
+  extract(school_locations, into = c("City", "State"), regex = "([^,]+), ([^,]+)") %>%
+  print(n = Inf) 
+
+write_csv(Geographical_1500, "~/Mscs 264 F22/Project/Henry_Andrew/Data/geographical_1500.csv")
+write_csv(Geographical_mile, "~/Mscs 264 F22/Project/Henry_Andrew/Data/geographical_mile.csv")
+```
+### Graph posibility
+
+```{r}
+library(maps)
+us_states <- map_data("state")
+head(us_states)
+# Note that points in the same "group" are connected with a line
+
+us_states %>%
+  ggplot(mapping = aes(x = long, y = lat,
+                          group = group)) + 
+  geom_polygon(fill = "white", color = "black")
+
+Geographical_mile %>%
+  group_by(State) %>%
+  summarise(n = n()) %>%
+  mutate(State = str_to_lower(State)) %>%
+  right_join(us_states, by = c("State" = "region")) %>%
+  ggplot(mapping = aes(x = long, y = lat,
+                          group = group)) + 
+  geom_polygon(aes(fill = n), color = "black")+
+  coord_map() + 
+  theme_void()
+```
+
+function to create the 1500 meter tibble
+
+```{r}
+createtibble1500 <- function(htmllink, n){
+  url <- read_html(str_c(htmllink))
+  
+  times <- url %>%
+    html_nodes(str_c(".indoor:nth-child(",n,") div a")) %>%
+    html_text()
+
+meets <- url %>%
+  html_nodes(str_c('.indoor:nth-child(',n,') .panel-heading-text+ .panel-heading-text a')) %>%
+  html_text()
+
+dates <- url %>%
+  html_nodes(str_c('.indoor:nth-child(',n,') .panel-heading-normal-text')) %>%
+  html_text()
+
+athlete_tibble <- tibble(times, meets, dates)
+new_tibble <- athlete_tibble %>%
+  mutate(dates = str_remove_all(dates, "\n"),
+         dates = str_trim(dates, side = "both")) %>%
+  extract(times, into = c("minutes", "seconds"), regex = "([^:]+):([^:]+)") %>%
+  mutate(minutes = as.integer(minutes),
+         seconds = as.double(seconds),
+         dates = str_remove(dates, "(\\d)+-"),
+         dates = mdy(dates)) %>%
+  filter(dates >= '2022-01-01')
+new_tibble
+}
+
+createtibble1500Special <- function(htmllink){
+  url <- read_html(str_c(htmllink))
+  
+  times <- url %>%
+    html_nodes('.indoor:nth-child(8) div:nth-child(1) a') %>%
+    html_text()
+
+meets <- url %>%
+  html_nodes('.indoor:nth-child(8) .panel-heading-text+ .panel-heading-text a') %>%
+  html_text()
+
+dates <- url %>%
+  html_nodes('.indoor:nth-child(8) .panel-heading-normal-text') %>%
+  html_text()
+
+athlete_tibble <- tibble(times, meets, dates)
+new_tibble <- athlete_tibble %>%
+  mutate(dates = str_remove_all(dates, "\n"),
+         dates = str_trim(dates, side = "both")) %>%
+  extract(times, into = c("minutes", "seconds"), regex = "([^:]+):([^:]+)") %>%
+  mutate(minutes = as.integer(minutes),
+         seconds = as.double(seconds),
+         dates = str_remove(dates, "(\\d)+-"),
+         dates = mdy(dates)) %>%
+  filter(dates >= '2022-01-01')
+new_tibble
+}
+
+```
+
+```{r}
+Verkerke <- createtibble1500('https://www.tfrrs.org/athletes/7728937/Wis_Eau_Claire/Sam_Verkerke.html', '8') %>%
+  mutate(runner = "Sam Verkerke")
+Verkerke
+Sikorski <- createtibble1500('https://www.tfrrs.org/athletes/7384927/Rochester/Scott_Sikorski.html', "8") %>%
+  mutate(runner = "Scott Sikorski")
+Sikorski
+Ridderhoff <- createtibble1500('https://www.tfrrs.org/athletes/6885805/Washington_U/Jacob_Ridderhoff.html', "8") %>%
+  mutate(runner = "Jacob Ridderhoff")
+Ridderhoff 
+Moreland <- createtibble1500('https://www.tfrrs.org/athletes/6870111/Haverford/Jamie_Moreland.html', '8') %>%
+  mutate(runner = "Jamie Moreland")
+Moreland
+Maddoch <- createtibble1500("https://www.tfrrs.org/athletes/7557409/Wis_La_Crosse/Michael__Madoch.html",'8') %>%
+  mutate(runner = "Michael Maddoch")
+Maddoch
+Alderfer <- createtibble1500("https://www.tfrrs.org/athletes/6875530/Eastern_Mennonite/Isaac_Alderfer.html", '8') %>%
+  mutate(runner = "Isaac Alderfer")
+Alderfer
+Ryan <- createtibble1500("https://www.tfrrs.org/athletes/6462812/Williams/Aidan_Ryan.html",'7') %>%
+  mutate(runner = "Aiden Ryan")
+Ryan
+Rosencrans <- createtibble1500("https://www.tfrrs.org/athletes/7367995/Pomona_Pitzer/Jack_Rosencrans.html", '7') %>%
+  mutate(runner = "Jack Rosencrans")
+Rosencrans
+Sealand <- createtibble1500("https://www.tfrrs.org/athletes/6471970/Claremont_Mudd_Scripps/Daniel_Sealand.html", '7') %>%
+  mutate(runner = "Daniel Sealand")
+Sealand
+Llenza <- createtibble1500("https://www.tfrrs.org/athletes/7548883/Lynchburg/Sam_Llaneza.html",'10') %>%
+  mutate(runner = 'Sam Llenza')
+Llenza
+Krause <- createtibble1500("https://www.tfrrs.org/athletes/7560794/Wis_Whitewater/Justin_Krause.html", '10') %>%
+  mutate(runner = "Justin Krause")
+Krause
+Potter <- createtibble1500('https://www.tfrrs.org/athletes/6915552/Wis_Oshkosh/Steven_Potter.html','16') %>%
+  mutate(runner = "Steven Potter")
+Potter
+Ruggles <-createtibble1500('https://www.tfrrs.org/athletes/7388995/Geneseo_St/Ezra_Ruggles.html', '8') %>%
+  mutate(runner = "Ezra Ruggles")
+Ruggles
+Seletskiy <-createtibble1500('https://www.tfrrs.org/athletes/7892594/Carnegie_Mellon/Aleksei_Seletskiy.html', '7') %>%
+  mutate(runner = "Aleskei Seletskiy")
+Seletskiy
+Yackin <-createtibble1500('https://www.tfrrs.org/athletes/7369157/Otterbein/Cal_Yackin.html', '10') %>%
+  mutate(runner = "Cal Yackin")
+Yackin
+Kelly <-createtibble1500('https://www.tfrrs.org/athletes/6877945/Loras/Wyatt_Kelly.html', '10') %>%
+  mutate(runner = "Wyatt Kelly")
+Kelly
+Hoffman <-createtibble1500Special('https://www.tfrrs.org/athletes/7008179/Hope/Nicholas_Hoffman.html') %>%
+  mutate(runner = "Nicholas Hoffman")
+Hoffman 
+Boone <-createtibble1500('https://www.tfrrs.org/athletes/7800148/St_Scholastica/Calvin_Boone.html','10') %>%
+  mutate(runner = "Calvin Boone")
+Boone
+Booth_Genthe <-createtibble1500('https://www.tfrrs.org/athletes/7917917/Pomona_Pitzer/Bennett_Booth-Genthe.html', '9') %>%
+  mutate(runner = "Bennett Booth-Genthe")
+Booth_Genthe
+Harvey <- createtibble1500('https://www.tfrrs.org/athletes/7699520/Loras/Ryan_Harvey.html', '10') %>%
+  mutate(runner = "Ryan Harvey")
+
+all_races_1500 <- rbind(Moreland, Verkerke, Harvey, Llenza, Krause, Potter, Sikorski, Sealand, Ridderhoff, Maddoch, Yackin, Seletskiy, Kelly, Ruggles, Rosencrans, Alderfer, Hoffman, Boone, Booth_Genthe, Ryan) %>%
+  mutate(total_seconds = seconds + minutes*60) %>%
+  print(n = Inf)
+  
+all_races_1500_finals <- all_races_1500 %>%
+  filter(meets == "NCAA Division III Outdoor Track & Field Championships") %>%
+  group_by(runner) %>%
+  summarise(n = n()) %>%
+  mutate(finals = ifelse(n == 2, TRUE, FALSE)) %>%
+  select(finals, runner) %>%
+  full_join(all_races_1500) %>%
+  print(n = Inf)
+
+all_races_split_nats <- all_races_1500_finals %>%
+  filter(meets == "NCAA Division III Outdoor Track & Field Championships", finals == TRUE)
+
+all_races_1500_natty_finals <- fifteen_final %>%
+  extract(TIME, into = c("minutes", "seconds"), regex = "([^:]+):([^:]+)") %>%
+  mutate(minutes = as.integer(minutes),
+         seconds = as.double(seconds)) %>%
+  inner_join(all_races_1500_finals) %>%
+  filter(finals == TRUE) %>%
+  select(minutes, seconds, finals, runner, meets, dates, total_seconds) %>%
+  mutate(NCAA_Final = TRUE) %>%
+  full_join(all_races_1500_finals, by = c("minutes", "seconds", "finals", "runner", "meets", "dates", "total_seconds")) %>%
+  mutate(NCAA_Final = ifelse(is.na(NCAA_Final), FALSE, NCAA_Final)) %>%
+  print(n = Inf) 
+  
+all_races_1500_tidy <- fifteen_final %>%
+  extract(TIME, into = c("minutes", "seconds"), regex = "([^:]+):([^:]+)") %>%
+  mutate(minutes = as.integer(minutes),
+         seconds = as.double(seconds)) %>%
+  inner_join(all_races_1500_finals) %>%
+  filter(finals == TRUE) %>%
+  select(minutes, seconds, finals, runner, meets, dates, total_seconds) %>%
+  mutate(NCAA_Final = TRUE) %>%
+  full_join(all_races_1500_finals, by = c("minutes", "seconds", "finals", "runner", "meets", "dates", "total_seconds")) %>%
+  mutate(NCAA_Final = ifelse(is.na(NCAA_Final), FALSE, NCAA_Final)) %>%
+  filter(NCAA_Final == TRUE) %>%
+  head(n = 8) %>%
+  mutate(all_american = TRUE) %>%
+  full_join(all_races_1500_natty_finals, by = c("minutes", "seconds", "finals", "runner", "meets", "dates", "total_seconds", "NCAA_Final")) %>%
+  mutate(all_american = ifelse(is.na(all_american), FALSE, all_american)) %>%
+  group_by(all_american, runner) %>%
+  summarise(n = n()) %>%
+  filter(all_american == TRUE) %>%
+  full_join(all_races_1500_natty_finals) %>%
+  mutate(all_american = ifelse(is.na(all_american), FALSE, all_american)) %>%
+  print(n = Inf) 
+
+write_csv(all_races_1500_tidy, "~/Mscs 264 F22/Project/Henry_Andrew/Data/all_races_1500_tidy.csv")
+
+
+ggplot(all_races_1500, aes(x = dates, y = total_seconds, color = runner)) +
+  geom_point()+
+  geom_line()
+
+
+```
+
+Indoor Mile
+
+```{r}
+mile_url <- read_html('https://www.tfrrs.org/results/72662/4416135/NCAA_Division_III_Indoor_Track__Field_Championships/Mens-Mile')
+mile_nodes <- html_nodes(mile_url, css = "table")
+mile_final <- html_table(mile_nodes)[[1]]
+mile_prelims <- html_table(mile_nodes)[[2]]
+mile_final <- mile_final %>%
+  select(PL, NAME, YEAR, TEAM, TIME, final) %>%
+  mutate(final = TRUE)
+mile_prelims <- mile_prelims %>%
+  mutate(final = FALSE,
+         )
+
+createtibble10k()
+
+mile_tidy <- rbind(mile_final, mile_prelims)
+
+write_csv(mile_tidy, "~/Mscs 264 F22/Project/Henry_Andrew/Data/mile_tidy.csv")
+```
+
