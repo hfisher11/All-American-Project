@@ -1,0 +1,285 @@
+---
+title: "Project Webscraping"
+author: "Andrew Skemp and Henry Fisher"
+date: "12/1/2022"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 4.5
+  html_document: default
+word_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(httr)
+library(rvest)
+```
+
+hundred meter nationals race tibbles
+
+```{r}
+hundredMeter <- read_html('https://tfrrs.org/results/75041/4566001/NCAA_Division_III_Outdoor_Track__Field_Championships/Mens-100-Meters')
+
+hundred <- html_nodes(hundredMeter, css = "table")
+hundred_final_mens <- html_table(hundred, header = TRUE, fill = TRUE)[[1]] %>%
+  mutate(wind = "1.7",
+         date = make_date(year = 2022L, month = 5L, day = 28L),
+         meet = "NCAA Division III Outdoor Track & Field Championships") %>%
+  rename(place = PL,
+         name = NAME,
+         class = YEAR,
+         school = TEAM,
+         time = TIME,
+         score = SC)
+
+hundred_prelims_mens <- html_table(hundred, header = TRUE, fill = TRUE)[[2]] %>%
+  mutate(date = make_date(year = 2022L, month = 5L, day = 26L),
+         meet = "NCAA Division III Outdoor Track & Field Championships") %>%
+  rename(place = PL,
+         name = NAME,
+         class = YEAR,
+         school = TEAM,
+         time = TIME,
+         wind = WIND)
+hundred_final_mens
+hundred_prelims_mens
+write_csv(hundred_final_mens, "~/Mscs 264 F22/Project/Henry_Andrew/Data/hundred_final_mens.csv")
+write_csv(hundred_prelims_mens, "~/Mscs 264 F22/Project/Henry_Andrew/Data/hundred_prelims_mens.csv")
+```
+
+fifteen hundred meter nationals race tibble
+
+```{r}
+fifteenMeter <- read_html('https://tfrrs.org/results/75041/4566013/NCAA_Division_III_Outdoor_Track__Field_Championships/Mens-1500-Meters')
+fifteen <- html_nodes(fifteenMeter, css = "table")
+fifteen_final_mens <- html_table(fifteen, header = TRUE, fill = TRUE)[[1]] %>%
+  mutate(date = make_date(year = 2022L, month = 5L, day = 28L),
+         meet = "NCAA Division III Outdoor Track & Field Championships",
+         TIME = period_to_seconds(ms(TIME))) %>%
+  rename(place = PL,
+         athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         time = TIME,
+         score = SC)
+fifteen_prelims_mens <- html_table(fifteen, header = TRUE, fill = TRUE)[[2]] %>%
+  mutate(date = make_date(year = 2022L, month = 5L, day = 26L),
+         meet = "NCAA Division III Outdoor Track & Field Championships",
+         TIME = period_to_seconds(ms(TIME))) %>%
+  rename(place = PL,
+         athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         time = TIME)
+fifteen_final_mens
+fifteen_prelims_mens
+write_csv(fifteen_final_mens, "~/Mscs 264 F22/Project/Henry_Andrew/Data/fifteen_final_mens.csv")
+write_csv(fifteen_prelims_mens, "~/Mscs 264 F22/Project/Henry_Andrew/Data/fifteen_prelims_mens.csv")
+```
+
+Team scores
+
+```{r}
+teamScores <- read_html('https://tfrrs.org/results/75041/NCAA_Division_III_Outdoor_Track__Field_Championships')
+team_scores <- html_nodes(teamScores, css = "table")
+final_team_scores_mens <- html_table(team_scores, header = TRUE, fill = TRUE)[[3]]
+final_team_scores_womens <- html_table(team_scores, header = TRUE, fill = TRUE)[[4]]
+final_team_scores_womens
+final_team_scores_mens
+
+write_csv(final_team_scores_mens, "~/Mscs 264 F22/Project/Henry_Andrew/Data/final_team_scores_mens.csv")
+```
+
+list of d3 schools by state
+
+```{r}
+Locations <- read_html('https://www.ncsasports.org/division-3-colleges')
+schools <- Locations %>% 
+  html_nodes(".container link+ div") %>%
+  html_text()
+schools
+
+school_locations <- Locations %>%
+  html_nodes('.container link~ div:nth-child(3)') %>%
+  html_text()
+school_locations
+
+private <- Locations %>%
+  html_nodes("meta+ .container div:nth-child(4)") %>%
+  html_text()
+private
+
+conference <- Locations %>%
+  html_nodes("meta+ .container div:nth-child(5)") %>%
+  html_text()
+conference
+
+school_data1 <- tibble(schools, school_locations, private, conference) %>%
+         mutate(schools = str_remove(schools, "University "),
+                schools = str_remove(schools, "of "),
+                schools = str_replace(schools, "Wisconsin – ", "Wis.-"),
+                schools = str_trim(schools, side = "both"),
+                schools = str_remove(schools, " University"),
+                schools = str_replace(schools, "– Minnesota", "(Minn.)"),
+                schools = str_remove(schools, "Massachusetts Institute Technology – "),
+                schools = str_replace(schools, "Washington", "Washington U."),
+                schools = str_remove(schools, " s"),
+                schools = str_remove(schools, "The "),
+                schools = str_replace(schools, "Steubenville", "(Ohio)"),
+                schools = str_remove(schools, " Reserve"),
+                schools = str_replace(schools, "Saint", "St."),
+                schools = str_replace(schools, "Worcester Polytechnic Institute", "WPI"),
+                schools = str_replace(schools, "Benedictine", "Benedictine (Ill.)"),
+                schools = str_replace(schools, " State", " St."),
+                schools = str_replace(schools, "California ", "Cal "),
+                schools = str_replace(schools, "Carroll", "Carroll (Wis.)"),
+                schools = str_replace(schools, "Catholic America", "Catholic"),
+                schools = str_replace(schools, "Concordia – Texas", "Concordia (Tex.)"),
+                schools = str_replace(schools, "Concordia College (Minn.)", "Concordia-Moorhead"),
+                schools = str_replace(schools, "Adrian College", "Adrian"),
+                schools = str_replace(schools, "Albion College", "Albion"),
+                schools = str_replace(schools, "Bates College", "Bates"),
+                schools = str_replace(schools, "Bethany Lutheran College", "Bethany Lutheran"),
+                schools = str_replace(schools, "Birmingham-Southern College", "Birmingham-Southern"),
+                schools = str_replace(schools, "Bridgewater College", "Bridgewater (Va.)"),
+                schools = str_replace(schools, "SUNY College at Brockport", "Brockport St."),
+                schools = str_replace(schools, "Carleton College", "Carleton"),
+                schools = str_replace(schools, "Carthage College", "Carthage"),
+                schools = str_replace(schools, "Centre College", "Centre"),
+                schools = str_replace(schools, "Claremont-Mudd-Scripps Colleges", "Claremont-Mudd-Scripps"),
+                schools = str_replace(schools, "Colby College", "Colby"),
+                schools = str_replace(schools, "Elizabethtown College", "Elizabethtown"),
+                schools = str_replace(schools, "Geneva College", "Geneva"),
+                schools = str_replace(schools, "Grove City College", "Grove City"),
+                schools = str_replace(schools, "Haverford College", "Haverford"),
+                schools = str_replace(schools, "Hope College", "Hope"),
+                schools = str_replace(schools, "Ithaca College", "Ithaca"),
+                schools = str_replace(schools, "John Carroll (Wis.)", "John Carroll"),
+                schools = str_replace(schools, "Knox College", "Knox"),
+                schools = str_replace(schools, "Lebanon Valley College", "Lebanon Valley"),
+                schools = str_replace(schools, "Lewis & Clark College", "Lewis & Clark"),
+                schools = str_replace(schools, "Loras College", "Loras"),
+                schools = str_replace(schools, "McDaniel College", "McDaniel"),
+                schools = str_replace(schools, "Middlebury College", "Middlebury"),
+                schools = str_replace(schools, "Millsaps College", "Millsaps"),
+                schools = str_replace(schools, "Monmouth College", "Monmouth (Ill.)"),
+                schools = str_replace(schools, "Montclair (St.)", "Montclair State"),
+                schools = str_replace(schools, "North Central College", "North Central (Ill.)"),
+                schools = str_replace(schools, "Olivet College", "Olivet"),
+                schools = str_replace(schools, "Plymouth St.", "Plymouth State"),
+                schools = str_replace(schools, "Pomona-Pitzer Colleges", "Pomona-Pitzer"),
+                schools = str_replace(schools, "Principia College", "Principia"),
+                schools = str_replace(schools, "Penn St. Behrend", "PSU-Behrend"),
+                schools = str_replace(schools, "Ramapo College", "Ramapo"),
+                schools = str_replace(schools, "Rhodes College", "Rhodes"),
+                schools = str_replace(schools, "Ripon College", "Ripon"),
+                schools = str_replace(schools, "Rochester Institute Technology", "RIT"),
+                schools = str_replace(schools, "Rose-Hulman Institute Technology", "Rose-Hulman"),
+                schools = str_replace(schools, "Rutgers, St. Univ. New Jersey, Camden", "Rutgers-Camden"),
+                schools = str_replace(schools, "Rutgers – Newark", "Rutgers-Newark"),
+                schools = str_replace(schools, "Simpson College", "Simpson (Iowa)"),
+                schools = str_replace(schools, "Springfield College", "Springfield"),
+                schools = str_replace(schools, "St. John Fisher College", "St. John Fisher"),
+                schools = str_replace(schools, "St. Olaf College", "St. Olaf"),
+                schools = str_replace(schools, "College St. Scholastica", "St. Scholastica"),
+                schools = str_replace(schools, "College New Jersey", "TCNJ"),
+                schools = str_replace(schools, "Massachusetts – Dartmouth", "UMass Dartmouth"),
+                schools = str_replace(schools, "Wartburg College", "Wartburg"),
+                schools = str_replace(schools, "Washington U. & Lee", "Washington and Lee"),
+                schools = str_replace(schools, "Washington U. in St. Louis", "Washington U."),
+                schools = str_replace(schools, "Westminster College – Pennsylvania", "Westminster (Pa.)"),
+                schools = str_replace(schools, "Wheaton College – Illinois", "Wheaton (Ill.)"),
+                schools = str_replace(schools, "Whittier College", "Whittier"),
+                schools = str_replace(schools, "Williams College", "Williams"),
+                schools = str_replace(schools, "Wilmington College", "Wilmington (Ohio)"),
+                schools = str_replace(schools, "Wisconsin Lutheran College", "Wisconsin Lutheran"),
+                schools = str_replace(schools, "College Wooster", "Wooster"),
+                schools = str_replace(schools, "Bowdoin College", "Bowdoin"),
+                schools = str_replace(schools, "SUNY Cortland", "Cortland St."),
+                schools = str_replace(schools, "Rensselaer Polytechnic Institute – RPI", "RPI"),
+                schools = str_replace(schools, "Babson College", "Babson")) %>%
+  rename(school = schools)
+
+#originally we removed all the " College" strings from the school names, but that caused other problems so I had to go back and do this manually for the 60-ish schools here.
+
+#some of the str_replaces aren't working and I have no idea why, so I'm just going to replace the eight schools by hand because I think that will take less time
+
+additional_school_names <- c("Alfred State", "Concordia-Moorhead", "John Carroll", "Pacific (Ore.)",
+                             "Trinity (Conn.)", "Trinity (Tex.)", "U. of Chicago", "Wis.-Stout")
+
+additional_school_locations <- c("Alfred, New York", "Moorhead, Minnesota", "University Heights, Ohio",
+                                 "Forest Grove, Oregon", "Hartford, Connecticut", "San Antonio, Texas",
+                                 "Chicago, Illinois", "Stout, Wisconsin")
+
+additional_school_affiliation <- c("Public", "Private", "Private", "Private",
+                                   "Private", "Private", "Private", "Public")
+
+additional_school_conferences <- c("Allegheny Mountain Collegiate Conference",
+                                   "Minnesota Intercollegiate Athletic Conference",
+                                   "Ohio Athletic Conference",
+                                   "Northwest Conference",
+                                   "New England Small College Athletic Conference",
+                                   "Southern Collegiate Athletic Conference",
+                                   "University Athletic Association",
+                                   "Wisconsin Intercollegiate Athletic Conference")
+
+additional_school_data <- data.frame(additional_school_names, additional_school_locations,
+                                     additional_school_affiliation, additional_school_conferences) %>%
+  rename(school = additional_school_names,
+         school_locations = additional_school_locations,
+         private = additional_school_affiliation,
+         conference = additional_school_conferences)
+
+school_data <- rbind(school_data1, additional_school_data)
+
+#Alfred State and Wis.-Stout don't exist at all in the school dataset (Wis.-Stevens Point is duplicated though), so I have to google the information for this
+
+anti_join(individual_qualifiers, school_data) %>%
+  count(school) %>%
+  print(n = Inf)
+  
+
+write_csv(school_data, "~/Mscs 264 F22/Project/Henry_Andrew/Data/school_data.csv")
+```
+
+I had to tidy the data up pretty well. Did the best I could, but couldn't get all of the strings the same and would have had to manually go into each and change each. I think this should work. 
+
+```{r}
+Geographical_mens <- inner_join(final_team_scores_mens, school_data, by = c("TEAM" = "schools")) %>%
+  print(n = Inf)
+Geographical_womens <-inner_join(final_team_scores_womens, school_data, by = c("TEAM" = "schools")) %>%
+  print(n = Inf)
+```
+
+All-Americans
+
+100 (contains data on all 60m, 100m, and outdoors 200m races run by all 8 All-Americans)
+```{r}
+hundred_all_americans <- read_csv("~/Mscs 264 F22/Project/Henry_Andrew/Data/hundred_all_americans.csv")
+hundred_all_americans
+```
+
+Individual Champions
+```{r}
+individual_champions <- individual_finals %>%
+  filter(rank == 1) %>%
+  select(2:5,7,8)
+write_csv(individual_champions, "~/Mscs 264 F22/Project/Henry_Andrew/Data/individual_champions.csv")
+```
+
+Individual All-Americans
+```{r}
+all_americans <- individual_finals %>%
+  filter(rank < 9)
+write_csv(all_americans, "~/Mscs 264 F22/Project/Henry_Andrew/Data/all_americans.csv")
+```
+
+```{r}
+
+
+```
+

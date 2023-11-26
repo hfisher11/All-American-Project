@@ -1,0 +1,207 @@
+---
+title: "Project Webscraping"
+author: "Andrew Skemp and Henry Fisher"
+date: "12/1/2022"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 4.5
+  html_document: default
+word_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(httr)
+library(rvest)
+library(lubridate)
+```
+
+*Henry decided to brute force the finals and prelims data because each of the events required different cleaning and had different data attached to them. This is just like the finals scraping.*
+
+*The 110 hurdles were especially difficult*
+
+```{r}
+prelims_url <- read_html(
+  'https://www.tfrrs.org/results/75041/m/NCAA_Division_III_Outdoor_Track__Field_Championships')
+prelims <- html_nodes(prelims_url, css = "table")
+```
+
+
+Running Events
+
+100
+```{r}
+rankings_100_full <- html_table(prelims, header = TRUE, fill = TRUE)[[2]]
+prelims_100 <- rankings_100_full %>%
+  mutate(event = "100") %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL,
+         wind = WIND) %>%
+  mutate(group = "sprints") %>%
+  select(1:5,7,8,6)
+```
+
+200
+```{r}
+rankings_200_full <- html_table(prelims, header = TRUE, fill = TRUE)[[7]]
+prelims_200 <- rankings_200_full %>%
+  mutate(event = "200") %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL,
+         wind = WIND) %>%
+  mutate(group = "sprints") %>%
+  select(1:5,7,8,6)
+```
+
+400
+```{r}
+rankings_400_full <- html_table(prelims, header = TRUE, fill = TRUE)[[12]]
+prelims_400 <- rankings_400_full %>%
+  mutate(event = "400") %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL) %>%
+  mutate(group = "sprints",
+         wind = NA)
+```
+
+800
+```{r}
+rankings_800_full <- html_table(prelims, header = TRUE, fill = TRUE)[[17]]
+prelims_800 <- rankings_800_full %>%
+  mutate(event = "800",
+         TIME = period_to_seconds(ms(TIME))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL) %>%
+  mutate(group = "middle distance",
+         wind = NA)
+```
+
+1500
+```{r}
+rankings_1500_full <- html_table(prelims, header = TRUE, fill = TRUE)[[22]]
+prelims_1500 <- rankings_1500_full %>%
+  mutate(event = "1500",
+         TIME = period_to_seconds(ms(TIME))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL) %>%
+  mutate(group = "middle distance",
+         wind = NA)
+```
+
+110H
+```{r}
+#TFRRS has a table for the accumulated prelims result, but for some reason the 110H prelims doesn't have wind data in that table
+
+rankings_110H_1 <- html_table(prelims, header = TRUE, fill = TRUE)[[29]]
+rankings_110H_2 <- html_table(prelims, header = TRUE, fill = TRUE)[[30]]
+rankings_110H_3 <- html_table(prelims, header = TRUE, fill = TRUE)[[31]]
+prelims_110H_1 <- rankings_110H_1 %>%
+  mutate(event = "110H") %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL) %>%
+  mutate(group = "hurdles",
+         wind = parse_double("-0.8"))
+
+#so we had to add the wind value in for each prelim heat by hand, and then bind the heats together.
+#The 100 and 200 didn't have this problem.
+
+prelims_110H_2 <- rankings_110H_2 %>%
+  mutate(event = "110H") %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL) %>%
+  mutate(group = "hurdles",
+         wind = parse_double("-0.1"))
+
+prelims_110H_3 <- rankings_110H_3 %>%
+  mutate(event = "110H") %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL) %>%
+  mutate(group = "hurdles",
+         wind = parse_double("-1.8"))
+
+prelims_110H <- rbind(prelims_110H_1, prelims_110H_2, prelims_110H_3)
+```
+
+400H
+```{r}
+rankings_400H_full <- html_table(prelims, header = TRUE, fill = TRUE)[[33]]
+prelims_400H <- rankings_400H_full %>%
+  mutate(event = "400H") %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL) %>%
+  mutate(seed = ifelse(athlete == "Jacob Patton", period_to_seconds(ms(seed)), parse_double(seed)),
+         group = "hurdles",
+         wind = NA)
+```
+
+3000 Steeplechase
+```{r}
+rankings_3000SC_full <- html_table(prelims, header = TRUE, fill = TRUE)[[38]]
+prelims_3000SC <- rankings_3000SC_full %>%
+  mutate(event = "3000SC",
+         TIME = period_to_seconds(ms(TIME))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL) %>%
+  mutate(group = "distance",
+         wind = NA)
+```
+
+
+
+```{r}
+individual_prelims <- rbind(
+  prelims_100, prelims_200, prelims_400,
+  prelims_800, prelims_1500, 
+  prelims_110H, prelims_400H, prelims_3000SC) %>%
+  mutate(seed = parse_double(seed),
+         athlete = str_replace(athlete, "  ", " "),
+         athlete = str_replace(athlete, "Spencer  Moore", "Spencer Moore"))
+#some of the athletes had two spaces between their names
+#the str_replace fixed all but one of them (for whatever reason, it did not fix "Spencer  Moore")
+```
+
+
+```{r}
+write_csv(individual_prelims, "~/Mscs 264 F22/Project/Henry_Andrew/Data/individual_prelims.csv")
+```
+
+```{r}
+#test to see if we have all of the double-space issues fixed
+individual_prelims %>%
+  count(str_detect(athlete, "  "))
+```
+

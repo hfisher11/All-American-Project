@@ -1,0 +1,365 @@
+---
+title: "Project Webscraping"
+author: "Andrew Skemp and Henry Fisher"
+date: "12/1/2022"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 4.5
+  html_document: default
+word_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(httr)
+library(rvest)
+library(lubridate)
+```
+
+*Henry decided to brute force the prelims and finals tibbles because each of the events required different cleaning and had different data attached to them.*
+
+```{r}
+finals_url <- read_html(
+  'https://www.tfrrs.org/results/75041/m/NCAA_Division_III_Outdoor_Track__Field_Championships')
+finals <- html_nodes(finals_url, css = "table")
+#here we get the data for all of the finals heats at the 2022 national championship meet
+```
+
+
+Running Events
+
+100
+```{r}
+rankings_100_full <- html_table(finals, header = TRUE, fill = TRUE)[[1]]
+finals_100 <- rankings_100_full %>%
+  mutate(event = "100") %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL,
+         score = SC) %>%
+  mutate(group = "sprints")
+```
+
+200
+```{r}
+rankings_200_full <- html_table(finals, header = TRUE, fill = TRUE)[[6]]
+finals_200 <- rankings_200_full %>%
+  mutate(event = "200") %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL,
+         score = SC) %>%
+  mutate(group = "sprints")
+```
+
+400
+```{r}
+rankings_400_full <- html_table(finals, header = TRUE, fill = TRUE)[[11]]
+finals_400 <- rankings_400_full %>%
+  mutate(event = "400") %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL,
+         score = SC) %>%
+  mutate(group = "sprints")
+```
+
+800
+```{r}
+rankings_800_full <- html_table(finals, header = TRUE, fill = TRUE)[[16]]
+finals_800 <- rankings_800_full %>%
+  mutate(event = "800",
+         TIME = period_to_seconds(ms(TIME))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL,
+         score = SC) %>%
+  mutate(group = "middle distance")
+```
+
+1500
+```{r}
+rankings_1500_full <- html_table(finals, header = TRUE, fill = TRUE)[[21]]
+finals_1500 <- rankings_1500_full %>%
+  mutate(event = "1500",
+         TIME = period_to_seconds(ms(TIME))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL,
+         score = SC) %>%
+  mutate(group = "middle distance")
+```
+
+5000
+```{r}
+rankings_5000_full <- html_table(finals, header = TRUE, fill = TRUE)[[25]]
+finals_5000 <- rankings_5000_full %>%
+  mutate(event = "5000",
+         TIME = period_to_seconds(ms(TIME))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL,
+         score = SC) %>%
+  mutate(group = "distance")
+```
+
+10000
+```{r}
+rankings_10000_full <- html_table(finals, header = TRUE, fill = TRUE)[[26]]
+finals_10000 <- rankings_10000_full %>%
+  mutate(event = "10000",
+         TIME = period_to_seconds(ms(TIME))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL,
+         score = SC) %>%
+  mutate(group = "distance")
+```
+
+110H
+```{r}
+rankings_110H_full <- html_table(finals, header = TRUE, fill = TRUE)[[27]]
+finals_110H <- rankings_110H_full %>%
+  mutate(event = "110H") %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL,
+         score = SC) %>%
+  mutate(group = "hurdles")
+```
+
+400H
+```{r}
+rankings_400H_full <- html_table(finals, header = TRUE, fill = TRUE)[[32]]
+finals_400H <- rankings_400H_full %>%
+  mutate(event = "400H") %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL,
+         score = SC) %>%
+  mutate(group = "hurdles")
+```
+
+3000 Steeplechase
+```{r}
+rankings_3000SC_full <- html_table(finals, header = TRUE, fill = TRUE)[[37]]
+finals_3000SC <- rankings_3000SC_full %>%
+  mutate(event = "3000SC",
+         TIME = period_to_seconds(ms(TIME))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = TIME,
+         rank = PL,
+         score = SC) %>%
+  mutate(group = "distance")
+```
+
+
+Jumps
+
+High Jump
+```{r}
+rankings_HJ_full <- html_table(finals, header = TRUE, fill = TRUE)[[49]]
+finals_HJ <- rankings_HJ_full %>%
+  filter(!is.na(PL)) %>%
+  mutate(event = "HJ",
+         MARK = parse_double(str_extract(MARK, "\\d.\\d\\d"))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = MARK,
+         rank = PL,
+         score = SC) %>%
+  select(1:5,7,8)
+```
+
+Pole Vault
+```{r}
+rankings_PV_full <- html_table(finals, header = TRUE, fill = TRUE)[[50]]
+finals_PV <- rankings_PV_full %>%
+  filter(!is.na(PL)) %>%
+  mutate(event = "PV",
+         MARK = parse_double(str_extract(MARK, "\\d.\\d\\d"))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = MARK,
+         rank = PL,
+         score = SC) %>%
+  select(1:5,7,8)
+```
+
+Long Jump
+```{r}
+rankings_LJ_full <- html_table(finals, header = TRUE, fill = TRUE)[[51]]
+finals_LJ <- rankings_LJ_full %>%
+  filter(!is.na(PL)) %>%
+  mutate(event = "LJ",
+         MARK = parse_double(str_extract(MARK, "\\d.\\d\\d"))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = MARK,
+         rank = PL,
+         score = SC) %>%
+  select(1:5,7,9)
+```
+
+Triple Jump
+```{r}
+rankings_TJ_full <- html_table(finals, header = TRUE, fill = TRUE)[[54]]
+finals_TJ <- rankings_TJ_full %>%
+  filter(!is.na(PL)) %>%
+  mutate(event = "TJ",
+         MARK = parse_double(str_extract(MARK, "\\d\\d.\\d\\d"))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = MARK,
+         rank = PL,
+         score = SC) %>%
+  select(1:5,7,9)
+```
+
+
+Throws
+
+Shot Put
+```{r}
+rankings_SP_full <- html_table(finals, header = TRUE, fill = TRUE)[[57]]
+finals_SP <- rankings_SP_full %>%
+  filter(!is.na(PL)) %>%
+  mutate(event = "SP",
+         MARK = parse_double(str_extract(MARK, "\\d\\d.\\d\\d"))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = MARK,
+         rank = PL,
+         score = SC) %>%
+  select(1:5,7,8)
+```
+
+
+Discus
+```{r}
+rankings_discus_full <- html_table(finals, header = TRUE, fill = TRUE)[[60]]
+finals_discus <- rankings_discus_full %>%
+  filter(!is.na(PL)) %>%
+  mutate(event = "discus",
+         MARK = parse_double(str_extract(MARK, "\\d\\d.\\d\\d"))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = MARK,
+         rank = PL,
+         score = SC) %>%
+  select(1:5,7,8)
+```
+
+Hammer
+```{r}
+rankings_hammer_full <- html_table(finals, header = TRUE, fill = TRUE)[[63]]
+finals_hammer <- rankings_hammer_full %>%
+  filter(!is.na(PL)) %>%
+  mutate(event = "hammer",
+         MARK = parse_double(str_extract(MARK, "\\d\\d.\\d\\d"))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = MARK,
+         rank = PL,
+         score = SC) %>%
+  select(1:5,7,8)
+```
+
+Javelin
+```{r}
+rankings_javelin_full <- html_table(finals, header = TRUE, fill = TRUE)[[66]]
+finals_javelin <- rankings_javelin_full %>%
+  filter(!is.na(PL)) %>%
+  mutate(event = "javelin",
+         MARK = parse_double(str_extract(MARK, "\\d\\d.\\d\\d"))) %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = MARK,
+         rank = PL,
+         score = SC) %>%
+  select(1:5,7,8)
+```
+
+
+Decathlon
+```{r}
+rankings_decathlon_full <- html_table(finals, header = TRUE, fill = TRUE)[[69]]
+finals_decathlon <- rankings_decathlon_full %>%
+  mutate(event = "decathlon") %>%
+  rename(athlete = NAME,
+         class = YEAR,
+         school = TEAM,
+         seed = POINTS,
+         rank = PL,
+         score = SC) %>%
+  mutate(group = "multis")
+```
+
+
+
+```{r}
+finals_run <- rbind(
+  finals_100, finals_200, finals_400, finals_800, 
+  finals_1500, finals_5000, finals_10000, 
+  finals_110H, finals_400H, finals_3000SC)
+
+finals_jump <- rbind(finals_HJ, finals_PV, finals_LJ, finals_TJ) %>%
+  mutate(group = "jumps")
+
+finals_throw <- rbind(finals_SP, finals_discus, finals_hammer, finals_javelin) %>%
+  mutate(group = "throws")
+```
+
+```{r}
+individual_finals <- rbind(
+  finals_run, finals_jump, finals_throw, finals_decathlon) %>%
+  mutate(seed = parse_double(seed),
+         score = parse_number(score),
+         athlete = str_replace(athlete, "  ", " "),
+         athlete = str_replace(athlete, "Spencer  Moore", "Spencer Moore"))
+#some of the athletes had two spaces between their names
+#the str_replace fixed all but one of them (for whatever reason, it did not fix "Spencer  Moore")
+```
+
+```{r}
+write_csv(individual_finals, "~/Mscs 264 F22/Project/Henry_Andrew/individual_finals.csv")
+```
+
+```{r}
+individual_finals %>%
+  count(str_detect(athlete, "  "))
+#check to see if we fixed all the double-space errors
+```
+

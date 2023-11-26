@@ -1,0 +1,92 @@
+---
+title: "Project Webscraping"
+author: "Andrew Skemp and Henry Fisher"
+date: "12/1/2022"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 4.5
+  html_document: default
+word_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(httr)
+library(rvest)
+```
+
+### Indoor 60,60H and mile
+```{r}
+qualifying_indoor <- read_html("https://www.tfrrs.org/lists/3494/2021_2022_NCAA_Div_III_Indoor_Qualifying_FINAL")
+html_nodes(qualifying_indoor, css = "table")
+Indoor_60q <- html_table(qualifying_indoor, header = TRUE, fill = TRUE)[[1]] %>%
+  select(Time, Meet, Athlete, Team) %>%
+  mutate(Time = str_remove(Time, "\\(55\\)"),
+         Time = str_replace(Time, "\n", ""),
+         Time = as.double(Time),
+         indoor_time = Time,
+         event = "60M/100M") %>%
+  select(indoor_time, Athlete, Team, event)
+Indoor_60q
+Indoor_60Hq <- html_table(qualifying_indoor, header = TRUE, fill = TRUE)[[15]] %>%
+  select(Time, Meet, Athlete, Team) %>%
+  mutate(indoor_time = Time,
+         event = "60H/110H") %>%
+  select(indoor_time, Athlete,  Team, event)
+Indoor_60Hq
+Indoor_Mile_q <- html_table(qualifying_indoor, header = TRUE, fill = TRUE)[[9]] %>%
+  select(Time, Meet, Athlete, Team) %>%
+  mutate(Time = str_remove(Time, "\\(55\\)"),
+         Time = str_replace(Time, "\n", ""),
+         Time = str_remove(Time, " #")) %>%
+  extract(Time, into = c("minutes", "seconds"), regex = "([^:]+):([^:]+)") %>%
+  mutate(minutes = as.double(minutes),
+         seconds = as.double(seconds),
+    indoor_time = minutes*60 + seconds,
+    event = "Mile/1500M") %>%
+  select(indoor_time, Athlete, Team, event)
+  
+Indoor_Mile_q
+```
+Outdoor Qual Times
+```{r}
+qualifying_outdoor <- read_html("https://tf.tfrrs.org/lists/3714/2022_NCAA_Division_III_Outdoor_Qualifying_FINAL")
+Outdoor_100Mq <- html_table(qualifying_outdoor, header = TRUE, fill = TRUE)[[1]] %>%
+  select(Time, Meet, Athlete, Team) %>%
+  mutate(Time = str_remove(Time, "\\(55\\)"),
+         Time = str_replace(Time, "\n", ""),
+         Time = as.double(Time),
+         outdoor_time = Time,
+         event = "60M/100M") %>%
+  select(outdoor_time, Athlete, Team, event)
+Outdoor_100Mq
+Outdoor_110Hq <- html_table(qualifying_outdoor, header = TRUE, fill = TRUE)[[16]] %>%
+  select(Time, Meet, Athlete, Team) %>%
+  mutate(outdoor_time = Time,
+         event = "60H/110H") %>%
+  select(outdoor_time, Athlete, Team, event)
+Outdoor_1500_q <- html_table(qualifying_outdoor, header = TRUE, fill = TRUE)[[9]] %>%
+  select(Time, Meet, Athlete, Team) %>%
+  mutate(Time = str_remove(Time, "\\(1\\)"),
+         Time = str_replace(Time, "\n", ""),
+         Time = str_remove(Time, " @")) %>%
+  extract(Time, into = c("minutes", "seconds"), regex = "([^:]+):([^:]+)") %>%
+  mutate(minutes = as.double(minutes),
+         seconds = as.double(seconds),
+    outdoor_time = minutes*60 + seconds,
+    event = "Mile/1500M") %>%
+  select(outdoor_time, Athlete, Team, event)
+
+indoor <- rbind(Indoor_60Hq, Indoor_60q, Indoor_Mile_q)
+outdoor <- rbind(Outdoor_100Mq, Outdoor_110Hq, Outdoor_1500_q)
+indoor_to_outdoor <- full_join(indoor, outdoor) %>%
+  filter(!is.na(outdoor_time),
+         !is.na(indoor_time))
+indoor_to_outdoor
+write_csv(indoor_to_outdoor, "~/Mscs 264 F22/Project/Henry_Andrew/indoor_to_outdoor.csv")
+```
+

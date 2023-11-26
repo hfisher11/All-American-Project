@@ -1,0 +1,506 @@
+---
+title: "Project Webscraping"
+author: "Andrew Skemp and Henry Fisher"
+date: "12/1/2022"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 4.5
+  html_document: default
+word_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(httr)
+library(rvest)
+library(lubridate)
+```
+
+This is nearly identical to the finals and prelims scraping.
+
+```{r}
+individual_finals <- read_csv("~/Mscs 264 F22/Project/Henry_Andrew/individual_finals.csv")
+individual_prelims <- read_csv("~/Mscs 264 F22/Project/Henry_Andrew/individual_prelims.csv")
+```
+
+```{r}
+qualifiers_url <- read_html(
+  'https://tf.tfrrs.org/lists/3714/2022_NCAA_Division_III_Outdoor_Qualifying_FINAL?gender=m')
+qualifiers <- html_nodes(qualifiers_url, css = "table")
+```
+
+
+Running Events
+
+100
+```{r}
+rankings_100_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[1]]
+colnames(rankings_100_full)[1] = "rank"
+qualifiers_100 <- rankings_100_full %>%
+  filter(rank <= 20) %>%
+  mutate(event = "100") %>%
+  rename(wind = Wind,
+         athlete = Athlete,
+         class = Year,
+         school = Team,
+         seed = Time,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  mutate(group = "sprints")
+```
+
+200
+```{r}
+rankings_200_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[2]]
+colnames(rankings_200_full)[1] = "rank"
+qualifiers_200 <- rankings_200_full %>%
+  filter(rank <= 20) %>%
+  mutate(event = "200",
+         Time = parse_double(str_extract(Time, "\\d\\d.\\d\\d"))) %>%
+  rename(wind = Wind,
+         athlete = Athlete,
+         class = Year,
+         school = Team,
+         seed = Time,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  mutate(group = "sprints")
+```
+
+400
+```{r}
+rankings_400_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[3]]
+colnames(rankings_400_full)[1] = "rank"
+qualifiers_400 <- rankings_400_full %>%
+  filter(rank <= 20) %>%
+  mutate(wind = NA,
+         event = "400") %>%
+  rename(athlete = Athlete,
+         class = Year,
+         school = Team,
+         seed = Time,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  mutate(group = "sprints")
+```
+
+800
+```{r}
+rankings_800_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[4]]
+colnames(rankings_800_full)[1] = "rank"
+qualifiers_800 <- rankings_800_full %>%
+  filter(rank <= 20) %>%
+  mutate(wind = NA,
+         Time = period_to_seconds(ms(Time)),
+         event = "800") %>%
+  rename(athlete = Athlete,
+         class = Year,
+         school = Team,
+         seed = Time,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  mutate(group = "middle distance")
+```
+
+1500
+```{r}
+rankings_1500_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[5]]
+colnames(rankings_1500_full)[1] = "rank"
+qualifiers_1500 <- rankings_1500_full %>%
+  filter(rank <= 26) %>%
+#some people in the top 20 didn't compete so up to the 26th person qualified
+  mutate(wind = NA,
+         Time = period_to_seconds(ms(Time)),
+         event = "1500") %>%
+  rename(athlete = Athlete,
+         class = Year,
+         school = Team,
+         seed = Time,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  mutate(group = "middle distance")
+```
+
+5000
+```{r}
+rankings_5000_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[6]]
+colnames(rankings_5000_full)[1] = "rank"
+qualifiers_5000 <- rankings_5000_full %>%
+  filter(rank <= 20) %>%
+  mutate(wind = NA,
+         Time = period_to_seconds(ms(Time)),
+         event = "5000") %>%
+  rename(athlete = Athlete,
+         class = Year,
+         school = Team,
+         seed = Time,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  mutate(group = "distance")
+```
+
+10000
+```{r}
+rankings_10000_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[7]]
+colnames(rankings_10000_full)[1] = "rank"
+qualifiers_10000 <- rankings_10000_full %>%
+  filter(rank <= 21) %>%
+  mutate(wind = NA,
+         Time = period_to_seconds(ms(Time)),
+         event = "10000") %>%
+  rename(athlete = Athlete,
+         class = Year,
+         school = Team,
+         seed = Time,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  mutate(group = "distance")
+```
+
+110H
+```{r}
+rankings_110H_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[8]]
+colnames(rankings_110H_full)[1] = "rank"
+qualifiers_110H <- rankings_110H_full %>%
+  filter(rank <= 20) %>%
+  mutate(event = "110H") %>%
+  rename(wind = Wind,
+         athlete = Athlete,
+         class = Year,
+         school = Team,
+         seed = Time,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  mutate(group = "hurdles")
+```
+
+400H
+```{r}
+rankings_400H_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[9]]
+colnames(rankings_400H_full)[1] = "rank"
+qualifiers_400H <- rankings_400H_full %>%
+  filter(rank <= 20) %>%
+  mutate(wind = NA,
+         event = "400H") %>%
+  rename(athlete = Athlete,
+         class = Year,
+         school = Team,
+         seed = Time,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  mutate(group = "hurdles")
+```
+
+3000 Steeplechase
+```{r}
+rankings_3000SC_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[10]]
+colnames(rankings_3000SC_full)[1] = "rank"
+qualifiers_3000SC <- rankings_3000SC_full %>%
+  filter(rank <= 20) %>%
+  mutate(wind = NA,
+         Time = period_to_seconds(ms(Time)),
+         event = "3000SC") %>%
+  rename(athlete = Athlete,
+         class = Year,
+         school = Team,
+         seed = Time,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  mutate(group = "distance")
+```
+
+
+Relays
+
+4x100
+```{r}
+rankings_4x100_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[11]]
+colnames(rankings_4x100_full)[1] = "rank"
+qualifiers_4x100 <- rankings_4x100_full %>%
+  filter(rank <= 20) %>%
+  mutate(wind = NA,
+         event = "4x100",
+         class = NA) %>%
+  rename(athlete = Athletes,
+         school = Team,
+         seed = Time,
+         meet = Meet,
+         date = `Meet Date`)
+```
+
+4x400
+```{r}
+rankings_4x400_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[12]]
+colnames(rankings_4x400_full)[1] = "rank"
+qualifiers_4x400 <- rankings_4x400_full %>%
+  filter(rank <= 20) %>%
+  mutate(wind = NA,
+         event = "4x400",
+         class = NA,
+         Time = period_to_seconds(ms(Time))) %>%
+  rename(athlete = Athletes,
+         school = Team,
+         seed = Time,
+         meet = Meet,
+         date = `Meet Date`)
+```
+
+
+Jumps
+
+High Jump
+```{r}
+rankings_HJ_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[13]]
+colnames(rankings_HJ_full)[1] = "rank"
+qualifiers_HJ <- rankings_HJ_full %>%
+  filter(rank <= 21) %>%
+  mutate(wind = NA,
+         event = "HJ",
+         Mark = parse_double(str_extract(Mark, "\\d.\\d\\d"))) %>%
+  rename(athlete = Athlete,
+         school = Team,
+         class = Year,
+         seed = Mark,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  select(1:5,7:10)
+```
+
+Pole Vault
+```{r}
+rankings_PV_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[14]]
+colnames(rankings_PV_full)[1] = "rank"
+qualifiers_PV <- rankings_PV_full %>%
+  filter(rank <= 20) %>%
+  mutate(wind = NA,
+         event = "PV",
+         Mark = parse_double(str_extract(Mark, "\\d.\\d\\d"))) %>%
+  rename(athlete = Athlete,
+         school = Team,
+         class = Year,
+         seed = Mark,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  select(1:5,7:10)
+```
+
+Long Jump
+```{r}
+rankings_LJ_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[15]]
+colnames(rankings_LJ_full)[1] = "rank"
+qualifiers_LJ <- rankings_LJ_full %>%
+  filter(rank <= 21) %>%
+  mutate(event = "LJ",
+         Mark = parse_double(str_extract(Mark, "\\d.\\d\\d"))) %>%
+  rename(wind = Wind,
+         athlete = Athlete,
+         school = Team,
+         class = Year,
+         seed = Mark,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  select(1:5,7:10)
+```
+
+Triple Jump
+```{r}
+rankings_TJ_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[16]]
+colnames(rankings_TJ_full)[1] = "rank"
+qualifiers_TJ <- rankings_TJ_full %>%
+  filter(rank <= 20) %>%
+  mutate(event = "TJ",
+         Mark = parse_double(str_extract(Mark, "\\d\\d.\\d\\d"))) %>%
+  rename(wind = Wind,
+         athlete = Athlete,
+         school = Team,
+         class = Year,
+         seed = Mark,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  select(1:5,7:10)
+```
+
+
+Throws
+
+Shot Put
+```{r}
+rankings_SP_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[17]]
+colnames(rankings_SP_full)[1] = "rank"
+qualifiers_SP <- rankings_SP_full %>%
+  filter(rank <= 21) %>%
+  mutate(wind = NA,
+         event = "SP",
+         Mark = parse_double(str_extract(Mark, "\\d.\\d\\d"))) %>%
+  rename(athlete = Athlete,
+         school = Team,
+         class = Year,
+         seed = Mark,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  select(1:5,7:10)
+```
+
+
+Discus
+```{r}
+rankings_discus_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[18]]
+colnames(rankings_discus_full)[1] = "rank"
+qualifiers_discus <- rankings_discus_full %>%
+  filter(rank <= 20) %>%
+  mutate(wind = NA,
+         event = "discus",
+         Mark = parse_double(str_extract(Mark, "\\d.\\d\\d"))) %>%
+  rename(athlete = Athlete,
+         school = Team,
+         class = Year,
+         seed = Mark,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  select(1:5,7:10)
+```
+
+Hammer
+```{r}
+rankings_hammer_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[19]]
+colnames(rankings_hammer_full)[1] = "rank"
+qualifiers_hammer <- rankings_hammer_full %>%
+  filter(rank <= 20) %>%
+  mutate(wind = NA,
+         event = "hammer",
+         Mark = parse_double(str_extract(Mark, "\\d.\\d\\d"))) %>%
+  rename(athlete = Athlete,
+         school = Team,
+         class = Year,
+         seed = Mark,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  select(1:5,7:10)
+```
+
+Javelin
+```{r}
+rankings_javelin_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[20]]
+colnames(rankings_javelin_full)[1] = "rank"
+qualifiers_javelin <- rankings_javelin_full %>%
+  filter(rank <= 20) %>%
+  mutate(wind = NA,
+         event = "javelin",
+         Mark = parse_double(str_extract(Mark, "\\d.\\d\\d"))) %>%
+  rename(athlete = Athlete,
+         school = Team,
+         class = Year,
+         seed = Mark,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  select(1:5,7:10)
+```
+
+
+Decathlon
+```{r}
+rankings_decathlon_full <- html_table(qualifiers, header = TRUE, fill = TRUE)[[21]]
+colnames(rankings_decathlon_full)[1] = "rank"
+qualifiers_decathlon <- rankings_decathlon_full %>%
+  filter(rank <= 20) %>%
+  mutate(wind = NA,
+         event = "decathlon",
+         Points = parse_double(as.character(Points))) %>%
+  rename(athlete = Athlete,
+         school = Team,
+         class = Year,
+         seed = Points,
+         meet = Meet,
+         date = `Meet Date`) %>%
+  select(2:4,9,1,5,8,6,7) %>%
+  mutate(group = "mulits")
+```
+
+
+
+```{r}
+qualifiers_run <- rbind(
+  qualifiers_100, qualifiers_200, qualifiers_400, qualifiers_800, 
+  qualifiers_1500, qualifiers_5000, qualifiers_10000, 
+  qualifiers_110H, qualifiers_400H, qualifiers_3000SC) %>%
+  select(2:4,9,1,5,8,6,7, 10)
+
+qualifiers_relay <- rbind(qualifiers_4x100, qualifiers_4x400) %>%
+  select(4,9,2,8,1,3,7,5,6) %>%
+  mutate(group = "relays")
+
+qualifiers_jump <- rbind(qualifiers_HJ, qualifiers_PV, qualifiers_LJ, qualifiers_TJ) %>%
+  select(2:4,9,1,5,8,6,7) %>%
+  mutate(group = "jumps")
+
+qualifiers_throw <- rbind(qualifiers_SP, qualifiers_discus, qualifiers_hammer, qualifiers_javelin) %>%
+  select(2:4,9,1,5,8,6,7) %>%
+  mutate(group = "throws")
+```
+
+```{r}
+individual_qualifiers <- rbind(
+  qualifiers_run, qualifiers_jump, qualifiers_throw, qualifiers_decathlon) %>%
+  mutate(athlete = sub("(\\w+),\\s(\\w+)","\\2 \\1", athlete),
+         athlete = str_replace(athlete, "Jah Beasley'mere", "Jah'mere Beasley"),
+         athlete = str_replace(athlete, "O'Joe Connor", "Joe O'Connor"),
+         athlete = str_replace(athlete, "Ka Watlington'Sean", "Ka'Sean Watlington"),
+         athlete = str_replace(athlete, "Raymond-Markelle Hill", "Markelle Raymond-Hill"),
+         athlete = str_replace(athlete, "Hotung-Tor Davidsen", "Tor Hotung-Davidsen"),
+         athlete = str_replace(athlete, "Booth-Bennett Genthe", "Bennett Booth-Genthe"),
+         athlete = str_replace(athlete, "Csiki-Matyas Fejer", "Matyas Csiki-Fejer"),
+         athlete = str_replace(athlete, "Peppard-Cormac Kramer", "Cormac Peppard-Kramer"),
+         athlete = str_replace(athlete, "Rienecker-Harry Found", "Harry Rienecker-Found"),
+         athlete = str_replace(athlete, "Tuohy Grahm Gaydos", "Grahm Tuohy Gaydos"),
+         athlete = str_replace(athlete, "Peterson Robbie Jr", "Robbie Peterson Jr"),
+         athlete = str_replace(athlete, "Davis Ravon Conway", "Ravon Davis Conway"))
+#nothing I tried to switch the first and last names and take out the comma worked, so I found this on stack overflow
+#It works except for the 10 names that have either a hyphen or an apostraphe in them
+#there was probably a better way to fix the ten names but with the small number to fix I decided it would take less time just to brute force it, especially considering they didn't all follow the same pattern
+```
+
+```{r}
+write_csv(individual_qualifiers, "~/Mscs 264 F22/Project/Henry_Andrew/Data/individual_qualifiers.csv")
+```
+
+This chunk merges the prelims, finals, and qualifying data together so we could visualize how the athletes fair in the meet. 
+```{r}
+individual_qualifiers_1 <- individual_qualifiers %>%
+  mutate(phase = 1) %>%
+  select(5,1:4,10,6,11)
+individual_prelims_1 <- individual_prelims %>%
+  mutate(phase = 2) %>%
+  select(1:4,6,7,5,9)
+individual_finals_1 <- individual_finals %>%
+  mutate(phase = 3) %>%
+  select(1:4,7,8,5,9) %>%
+  mutate(final_rank = rank)
+
+individual_prelims_2 <- right_join(individual_prelims_1, individual_finals_1,
+           by = c("athlete", "class", "school", "event", "group")) %>%
+  select(1:8,12) %>%
+  rename(rank = rank.x,
+         seed = seed.x,
+         phase = phase.x)
+
+individual_qualifiers_2 <- right_join(individual_qualifiers_1, individual_finals_1,
+           by = c("athlete", "class", "school", "event")) %>%
+  select(1:8, 13) %>%
+  rename(rank = rank.x,
+         seed = seed.x,
+         phase = phase.x,
+         group = group.x)
+
+three_stage_progression_finals <- rbind(individual_qualifiers_2, individual_prelims_2, individual_finals_1)
+
+two_stage_progression_finals <- rbind(individual_qualifiers_2, individual_finals_1)
+#we were going to use the two stage progressions for the events that didn't have prelims, but it turns out the three stage one worked for those too, so it was somewhat unnecessary.
+
+write_csv(three_stage_progression_finals, "~/Mscs 264 F22/Project/Henry_Andrew/three_stage_progression.csv")
+write_csv(two_stage_progression_finals, "~/Mscs 264 F22/Project/Henry_Andrew/two_stage_progression.csv")
+```
+

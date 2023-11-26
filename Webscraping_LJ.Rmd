@@ -1,0 +1,193 @@
+---
+title: "Project Webscraping"
+author: "Andrew Skemp and Henry Fisher"
+date: "12/1/2022"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 4.5
+  html_document: default
+word_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(httr)
+library(rvest)
+library(lubridate)
+```
+
+```{r}
+hundred_all_americans <- read_csv("~/Mscs 264 F22/Project/Henry_Andrew/hundred_all_americans.csv")
+```
+
+*We tried to use the scraping function, but selector gadget was giving us pathways that were giving us unwanted extra values, so we had to do some additional cleaning. it also meant the function wouldn't really work, and because it wasn't that much, we decided to brute force it again. Around the end seventh or eighth athlete, we got a key that actually gave us the values we wanted, so we replaced the earlier keys with that one and just changed the numbers in the middle*
+
+*This works basically the same as the 100m webscraping brute force method*
+
+All-Americans
+Long Jump
+  Sam Blaskowski
+```{r}
+blaskowski_LJ_marks <- read_html(
+  'https://www.tfrrs.org/athletes/8023536/Wis_La_Crosse/Sam_blaskowski.html') %>%
+  html_nodes(":nth-child(16) div a") %>%
+  html_text()
+
+blaskowski_LJ_wind <- read_html(
+  'https://www.tfrrs.org/athletes/8023536/Wis_La_Crosse/Sam_blaskowski.html') %>%
+  html_nodes(".indoor:nth-child(16) span:nth-child(2)") %>%
+  html_text()
+
+blaskowski_LJ <- data.frame(blaskowski_LJ_marks, blaskowski_LJ_wind) %>%
+  rename(mark = blaskowski_LJ_marks, wind = blaskowski_LJ_wind) %>%
+  mutate(athlete = "Sam Blaskowski")
+```
+
+  Kenneth Wei
+```{r}
+wei_LJ_marks <- read_html(
+  'https://www.tfrrs.org/athletes/7489666/MIT/Kenneth_Wei.html') %>%
+  html_nodes(".indoor:nth-child(9) div a") %>%
+  html_text()
+
+wei_LJ_wind <- read_html(
+  'https://www.tfrrs.org/athletes/7489666/MIT/Kenneth_Wei.html') %>%
+  html_nodes(".indoor:nth-child(9) span:nth-child(2)") %>%
+  html_text()
+
+
+wei_LJ <- data.frame(wei_LJ_marks, wei_LJ_wind) %>%
+  rename(mark = wei_LJ_marks, wind = wei_LJ_wind) %>%
+  mutate(athlete = "Kenneth Wei")
+```
+
+  Ahmir Johnson
+```{r}
+johnson_LJ_marks <- read_html(
+  'https://www.tfrrs.org/athletes/7494581/Rowan/Ahmir_Johnson.html') %>%
+  html_nodes(".indoor:nth-child(8) div a") %>%
+  html_text()
+
+johnson_LJ_wind <- read_html(
+  'https://www.tfrrs.org/athletes/7494581/Rowan/Ahmir_Johnson.html') %>%
+  html_nodes(".indoor:nth-child(8) span:nth-child(2)") %>%
+  html_text()
+
+johnson_LJ <- data.frame(johnson_LJ_marks, johnson_LJ_wind) %>%
+  rename(mark = johnson_LJ_marks, wind = johnson_LJ_wind) %>%
+  mutate(athlete = "Ahmir Johnson")
+```
+
+  Nana Agyemang
+```{r}
+agyemang_LJ_marks <- read_html(
+  'https://www.tfrrs.org/athletes/7769842/Rowan/Nana_Agyemang') %>%
+  html_nodes(":nth-child(19) div a") %>%
+  html_text()
+
+agyemang_LJ_wind <- read_html(
+  'https://www.tfrrs.org/athletes/7769842/Rowan/Nana_Agyemang') %>%
+  html_nodes(".indoor:nth-child(19) span:nth-child(2)") %>%
+  html_text()
+
+agyemang_LJ <- data.frame(agyemang_LJ_marks, agyemang_LJ_wind) %>%
+  rename(mark = agyemang_LJ_marks, wind = agyemang_LJ_wind) %>%
+  mutate(athlete = "Nana Agyemang")
+```
+
+  Matt Fleming
+```{r}
+fleming_LJ_marks <- read_html(
+  'https://www.tfrrs.org/athletes/6084815/Benedictine_IL/Matt_Fleming.html') %>%
+  html_nodes(".indoor:nth-child(18) div a") %>%
+  html_text()
+
+fleming_LJ_wind <- read_html(
+  'https://www.tfrrs.org/athletes/6084815/Benedictine_IL/Matt_Fleming.html') %>%
+  html_nodes(".indoor:nth-child(18) span:nth-child(2)") %>%
+  html_text()
+
+fleming_LJ <- data.frame(fleming_LJ_marks, fleming_LJ_wind) %>%
+  rename(mark = fleming_LJ_marks, wind = fleming_LJ_wind) %>%
+  mutate(athlete = "Matt Fleming")
+```
+
+  Sean Majors
+```{r}
+majors_LJ_marks <- read_html(
+  'https://www.tfrrs.org/athletes/7051870/Trinity_TX/Sean__Majors.html') %>%
+  html_nodes(".indoor:nth-child(19) div a") %>%
+  html_text()
+
+majors_LJ_wind <- read_html(
+  'https://www.tfrrs.org/athletes/7051870/Trinity_TX/Sean__Majors.html') %>%
+  html_nodes(".indoor:nth-child(19) span:nth-child(2)") %>%
+  html_text()
+
+majors_LJ <- data.frame(majors_LJ_marks, majors_LJ_wind) %>%
+  rename(mark = majors_LJ_marks, wind = majors_LJ_wind) %>%
+  mutate(athlete = "Sean Majors")
+```
+
+  Varun Narayan
+```{r}
+narayan_LJ_marks <- read_html(
+  'https://www.tfrrs.org/athletes/7023433/Carnegie_Mellon/Varun_Narayan.html') %>%
+  html_nodes(":nth-child(11) div:nth-child(1) a") %>%
+  html_text()
+
+narayan_LJ_wind <- read_html(
+  'https://www.tfrrs.org/athletes/7023433/Carnegie_Mellon/Varun_Narayan.html') %>%
+  html_nodes(".indoor:nth-child(11) span:nth-child(2)") %>%
+  html_text()
+
+narayan_LJ <- data.frame(narayan_LJ_marks, narayan_LJ_wind) %>%
+  rename(mark = narayan_LJ_marks, wind = narayan_LJ_wind) %>%
+  mutate(athlete = "Varun Narayan")
+```
+
+  Matthew Su
+```{r}
+su_LJ_marks <- read_html(
+  'https://www.tfrrs.org/athletes/6087641/Johns_Hopkins/Matthew_Su.html') %>%
+  html_nodes(".indoor:nth-child(35) div a") %>%
+  html_text()
+
+su_LJ_wind <- read_html(
+  'https://www.tfrrs.org/athletes/6087641/Johns_Hopkins/Matthew_Su.html') %>%
+  html_nodes(".indoor:nth-child(35) span:nth-child(2)") %>%
+  html_text()
+
+su_LJ <- data.frame(su_LJ_marks, su_LJ_wind) %>%
+  rename(mark = su_LJ_marks, wind = su_LJ_wind) %>%
+  mutate(athlete = "Matthew Su")
+```
+
+```{r}
+LJ_wind <- rbind(blaskowski_LJ, wei_LJ, johnson_LJ, agyemang_LJ, fleming_LJ, majors_LJ, narayan_LJ, su_LJ) %>%
+  mutate(mark = parse_double(str_extract(mark, "\\d.\\d\\d")),
+         wind = str_trim(wind),
+         wind = str_remove(wind, "\\("),
+         wind = str_remove(wind, "\\)"),
+         wind = str_remove(wind, "\\+"),
+         wind = parse_double(wind)) %>%
+select(3,1,2) %>%
+  mutate(event = "LJ")
+```
+
+```{r}
+hundred_wind <- hundred_all_americans %>%
+  select(athlete, time, wind, event) %>%
+  filter(event == "100") %>%
+  rename(mark = time)
+#here we transform the hundred all americans into a format we can bind with the LJ_wind
+
+wind_comparison <- rbind(LJ_wind, hundred_wind)
+
+write_csv(wind_comparison, "~/Mscs 264 F22/Project/Henry_Andrew/wind_comparison.csv")
+```
+
