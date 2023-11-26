@@ -1,0 +1,113 @@
+---
+title: "Project Webscraping"
+author: "Andrew Skemp and Henry Fisher"
+date: "12/1/2022"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 4.5
+  html_document: default
+word_document: default
+editor_options: 
+  chunk_output_type: Console
+---
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(httr)
+library(rvest)
+```
+
+```{r}
+individual_qualifiers
+```
+
+list of d3 schools by state
+
+###there were 13 schools which I was unable to tidy up and get the location for in this data set.
+
+```{r}
+Locations <- read_html('https://www.ncsasports.org/division-3-colleges')
+schools <- Locations %>% 
+  html_nodes(".container link+ div") %>%
+  html_text()
+schools
+
+school_locations <- Locations %>%
+  html_nodes('.container link~ div:nth-child(3)') %>%
+  html_text()
+school_locations
+
+private <- Locations %>%
+  html_nodes("meta+ .container div:nth-child(4)") %>%
+  html_text()
+private
+
+conference <- Locations %>%
+  html_nodes("meta+ .container div:nth-child(5)") %>%
+  html_text()
+conference
+
+school_data <- tibble(schools, school_locations, private, conference) %>%
+         mutate(schools = str_replace(schools, "North Central College",                                       "North Central (Ill.)"), schools = str_remove(schools, " Colleges"),
+                schools = str_remove(schools, " College"),
+                schools = str_remove(schools, "College"),
+                schools = str_remove(schools, "University "),
+                schools = str_remove(schools, "of "),
+                schools = str_replace(schools, "Wisconsin – ", "Wis.-"),
+                schools = str_trim(schools, side = "both"),
+                schools = str_remove(schools, " University"),
+                schools = str_replace(schools, "– Minnesota", "(Minn.)"),
+                schools = str_remove(schools, "Massachusetts Institute Technology – "),
+                schools = str_replace(schools, "Washington", "Washington U."),
+                schools = str_remove(schools, " s"),
+                schools = str_remove(schools, "The "),
+                schools = str_replace(schools, "Steubenville", "(Ohio)"),
+                schools = str_remove(schools, " Reserve"),
+                schools = str_replace(schools, "Saint", "St."),
+                schools = str_replace(schools, "Worcester Polytechnic Institute", "WPI"),
+                schools = str_replace(schools, "Wilmington", "Wilmington (Ohio)"),
+                schools = str_replace(schools, "– Illinois", "(Ill.)"),
+                schools = str_replace(schools, "Washington U. & Lee", "Washington and Lee"),
+                schools = str_replace(schools, "Chicago", "U. of Chicago"),
+                schools = str_replace(schools, "Connecticut", "Connecticut College"),
+                schools = str_replace(schools, "– Pennsylvania", "(Pa.)"),
+                schools = str_replace(schools, "Rutgers – Newark", "Rutgers-Newark"),
+                schools = str_replace(schools, "Massachusetts – Dartmouth", 'UMass Dartmouth'),
+                schools = str_replace(schools, "Trinity (Connecticut College)",                                'Trinity (Conn.)'),
+                schools = str_replace(schools, "Trinity (Texas)", "Trinity (Tex.)"),
+                schools = str_replace(schools, "New Jersey", "TCNJ"),
+                schools = str_replace(schools, "Simpson", "Simpson (Iowa)"),
+                schools = str_replace(schools,                                                                 "Rutgers, State Univ. TCNJ, Camden","Rutgers-Camden"),
+                schools = str_remove(schools, "Rensselaer Polytechnic Institute – "),
+                schools = str_replace(schools, "Rochester Institute Technology", "RIT"),
+                schools = str_replace(schools, "Illinois", "Illinois College"),
+                schools = str_replace(schools, "Rose-Hulman Institute Technology",                            "Rose-Hulman"),
+                schools = str_replace(schools, "Penn State ", "PSU-"),
+                schools = str_replace(schools, "Pacific", "Pacific (Ore.)"),
+                schools = str_replace(schools, "Pacific (Ore.) Lutheran", "Pacific Lutheran"),
+                schools = str_replace(schools, "Benedictine", "Benedictine (Ill.)"),
+                schools = str_replace(schools, "Concordia (Minn.)", "Concordia-Moorhead"),
+                schools = str_replace(schools, "Bridgewater State", "Bridgewater St.")) %>%
+  full_join(Stout_data) %>%
+  print(n = Inf) 
+  str_subset(school_data$schools, "Bridge")
+
+Stout_data <- as_tibble_row(c(schools = "Wis.-Stout", school_locations = "Menomonie, Wisconsin", private = "Public", conference = "Wisconsin Interscholastic Athletic Conference"))
+#stout was not in the dataset, but steven's point was there twice so we thing it was overwritten
+
+school_data1 <- school_data %>%
+  rename(school = schools) %>%
+  print(n = Inf)
+
+anti_join(individual_qualifiers, school_data1) %>%
+  count(school) %>%
+  print(n = Inf)
+#test to see if we missed any important ones
+  
+write_csv(school_data, "~/Mscs 264 F22/Project/Henry_Andrew/Data/school_data.csv")
+
+full_join(all_races_10k_tidy, school_data, by = c("school" = "schools"))
+```
+

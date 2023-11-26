@@ -1,0 +1,111 @@
+---
+title: "Project Webscraping"
+author: "Andrew Skemp and Henry Fisher"
+date: "12/1/2022"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 4.5
+  html_document: default
+word_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(httr)
+library(rvest)
+library(lubridate)
+```
+
+```{r}
+all_races_10k_tidy <- read_csv("~/Mscs 264 F22/Project/Henry_Andrew/all_races_10k_tidy.csv")
+all_races_1500_tidy <- read_csv("~/Mscs 264 F22/Project/Henry_Andrew/all_races_1500_tidy.csv")
+all_races_400_tidy <- read_csv("~/Mscs 264 F22/Project/Henry_Andrew/all_races_400_tidy.csv")
+hundred_all_americans <- read_csv("~/Mscs 264 F22/Project/Henry_Andrew/hundred_all_americans.csv")
+three_stage_progression_all <- read_csv("~/Mscs 264 F22/Project/Henry_Andrew/three_stage_progression_all.csv")
+```
+
+
+```{r}
+uniform_10k <- all_races_10k_tidy %>%
+  select(total_seconds, dates, runner, meets, finals, all_american, NCAA_Final) %>%
+  rename(times = total_seconds) %>%
+  mutate(event = "10k") %>%
+  group_by(runner)%>%
+  summarise(n = n())
+uniform_1500 <- all_races_1500_tidy %>%
+  select(total_seconds, dates, runner, meets, finals, all_american, NCAA_Final) %>%
+  rename(times = total_seconds)%>%
+  mutate(event = "1500")%>%
+  group_by(runner)%>%
+  summarise(n = n())
+uniform_400 <- all_races_400_tidy %>%
+  select(times, dates, runner, meets, finals, all_american, NCAA_Final)%>%
+  mutate(event = "400") %>%
+  group_by(runner)%>%
+  summarise(n = n())
+uniform_100 <- all_races_100_tidy%>%
+  mutate(event = "100")%>%
+  group_by(runner)%>%
+  summarise(n = n())
+
+uniform_10k$runner
+uniform_100$runner
+uniform_400$runner
+uniform_1500$runner
+  
+all_races <- rbind(uniform_400, uniform_1500, uniform_10k, uniform_100) %>%
+  ungroup()
+
+
+all_races %>%
+  filter(event == "100",
+         meets != "NCAA Division III Outdoor Track & Field Championships",
+         all_american == FALSE) %>%
+  group_by(runner) %>%
+  summarise(n = n()) %>%
+  ggplot(aes(y = reorder(runner, +n), x = n)) +
+  geom_bar(stat = "identity", color = "white", fill = "blue")
+```
+
+```{r}
+all_prelims <- three_stage_progression %>%
+  filter(event == "100" | event == "400" | event == "1500") %>%
+  filter(phase == "2") %>%
+  rename(times = seed,
+         runner = athlete) %>%
+  mutate(meets = "NCAA Division III Outdoor Track & Field Championships",
+         dates = parse_date("2022-05-26"),
+         all_american = ifelse(final_rank < 9, TRUE, FALSE),
+         NCAA_Final = FALSE,
+         finals = TRUE) %>%
+  select(times, dates, runner, meets, finals, all_american, NCAA_Final, event)
+
+all_finals <- three_stage_progression %>%
+  filter(event == "100" | event == "400" | event == "1500") %>%
+  filter(phase == "3") %>%
+  rename(times = seed,
+         runner = athlete) %>%
+  mutate(meets = "NCAA Division III Outdoor Track & Field Championships",
+         dates = parse_date("2022-05-28"),
+         all_american = ifelse(final_rank < 9, TRUE, FALSE),
+         NCAA_Final = FALSE,
+         finals = TRUE) %>%
+  select(times, dates, runner, meets, finals, all_american, NCAA_Final, event)
+
+most_races <- all_races %>%
+  filter(meets != "NCAA Division III Outdoor Track & Field Championships" | dates != "2022-05-28"
+        | finals != "TRUE" | event == "10k")
+
+all_races2 <- rbind(most_races, all_prelims, all_finals) %>%
+  mutate(runner = str_replace(runner, "Sam Llenza", "Sam Llaneza"),
+         runner = str_replace(runner, "Derrick  Jackson", "Derrick Jackson"),
+         runner = str_replace(runner, "Jared  Storm", "Jared Storm"),
+         all_american = ifelse(runner == "Rangel Miller", TRUE, all_american))
+
+write_csv(all_races2,"~/Mscs 264 F22/Project/Henry_Andrew/all_races2.csv")
+```
+

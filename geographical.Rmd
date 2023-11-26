@@ -1,0 +1,88 @@
+---
+title: "Project Webscraping"
+author: "Andrew Skemp and Henry Fisher"
+date: "12/1/2022"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 4.5
+  html_document: default
+word_document: default
+editor_options: 
+  chunk_output_type: Console
+---
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(httr)
+library(rvest)
+```
+
+```{r}
+all_americans <- read_csv("~/Mscs 264 F22/Project/Henry_Andrew/Data/all_americans.csv")
+individual_qualifiers <- read_csv("~/Mscs 264 F22/Project/Henry_Andrew/Data/individual_qualifiers.csv")
+school_data <- read_csv("~/Mscs 264 F22/Project/Henry_Andrew/Data/school_data.csv")
+individual_finals <- read_csv("~/Mscs 264 F22/Project/Henry_Andrew/Data/individual_finals.csv")
+```
+
+
+```{r}
+Geographical_100 <- Geographical_100 %>%
+  mutate(all_american = ifelse(place <= 8, TRUE, FALSE),
+         event = "100") %>%
+  select(name, time, state, city, private, conference, place, all_american, event)
+Geographical_10k <- Geographical_10k %>%
+  mutate(all_american = ifelse(place <= 8, TRUE, FALSE),
+         event = "10k") %>%
+  select(name, time, state, city, private, conference, place, all_american, event)
+Geographical_1500 <- Geographical_1500 %>%
+  mutate(all_american = ifelse(place <= 8, TRUE, FALSE),
+         event = "1500") %>%
+  select(name, time, state, city, private, conference, place, all_american, event)
+Geographical_400 <- Geographical_400 %>%
+  mutate(all_american = ifelse(place <= 8, TRUE, FALSE),
+         event = "400") %>%
+  select(name, time, state, city, private, conference, place, all_american, event)
+Geographical_mile <- Geographical_mile %>%
+  mutate(all_american = ifelse(place <= 8, TRUE, FALSE),
+         event = "mile") %>%
+  select(name, time, state, city, private, conference, place, all_american, event)
+
+Geographical <- rbind(Geographical_100, Geographical_10k, Geographical_1500, Geographical_400, Geographical_mile)
+Geographical
+write_csv(Geographical, "~/Mscs 264 F22/Project/Henry_Andrew/Geographical.csv")
+
+individual_finals <- read_csv("~/Mscs 264 F22/Project/Henry_Andrew/Data/individual_finals.csv")
+
+school_data
+
+Geographical2 <- left_join(individual_finals, school_data, by = "school") %>%
+  mutate(all_american = ifelse(is.na(score), FALSE, TRUE),
+         made_finals = TRUE) %>%
+  full_join(individual_qualifiers) %>%
+  mutate(made_finals = ifelse(is.na(made_finals), FALSE, made_finals),
+         all_american = ifelse(is.na(all_american), FALSE, all_american))%>%
+  separate(school_locations, into = c("city", "state"),sep = ",")
+
+Geographical2
+
+write_csv(Geographical2, "~/Mscs 264 F22/Project/Henry_Andrew/Data/Geographical2.csv")
+```
+
+```{r}
+Geographical3 <- left_join(individual_qualifiers, all_americans, 
+                           by = c("athlete", "class", "school", "event")) %>%
+  rename(qualifying_seed = seed.x,
+         qualifying_rank = rank.x,
+         group = group.x) %>%
+  mutate(all_american = ifelse(is.na(rank.y), FALSE, TRUE)) %>%
+  select(1:6,10,15) %>%
+  left_join(school_data, by = "school") %>%
+  separate(school_locations, into = c("city", "state"),sep = ", ")
+
+write_csv(Geographical3, "~/Mscs 264 F22/Project/Henry_Andrew/Data/Geographical3.csv")
+
+#fixes some errors with Geographical2
+```
+
